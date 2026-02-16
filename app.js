@@ -39,8 +39,8 @@ let currentEpisodeId = null;
 let availableServers = {};
 
 // ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
         splash.style.display = 'none';
         app.style.display = 'block';
         loadPage('home');
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkPremiumActivation();
     
     if (!currentUser) {
-        setTimeout(() => {
+        setTimeout(function() {
             showLoginModal();
         }, 3000);
     }
@@ -69,9 +69,9 @@ function setupEventListeners() {
     document.getElementById('searchToggle').addEventListener('click', toggleSearch);
     document.getElementById('closeSearch').addEventListener('click', toggleSearch);
     
-    searchInput.addEventListener('input', (e) => {
+    searchInput.addEventListener('input', function(e) {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
+        searchTimeout = setTimeout(function() {
             if (e.target.value.trim()) {
                 searchAnime(e.target.value);
             }
@@ -82,9 +82,9 @@ function setupEventListeners() {
     document.getElementById('closeMenu').addEventListener('click', closeMenu);
     overlay.addEventListener('click', closeMenu);
     
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const page = item.dataset.page;
+    document.querySelectorAll('.nav-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            var page = item.dataset.page;
             if (page === 'search') {
                 toggleSearch();
             } else {
@@ -93,9 +93,9 @@ function setupEventListeners() {
         });
     });
     
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const page = item.dataset.page;
+    document.querySelectorAll('.menu-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            var page = item.dataset.page;
             closeMenu();
             if (page) {
                 if (page === 'logout') {
@@ -114,12 +114,20 @@ function setupEventListeners() {
 function navigateTo(page) {
     currentPage = page;
     
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.page === page);
+    document.querySelectorAll('.nav-item').forEach(function(item) {
+        if (item.dataset.page === page) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
     });
     
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.page === page);
+    document.querySelectorAll('.menu-item').forEach(function(item) {
+        if (item.dataset.page === page) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
     });
     
     loadPage(page);
@@ -129,22 +137,36 @@ async function loadPage(page) {
     showLoading();
     
     try {
-        switch(page) {
-            case 'home': await loadHome(); break;
-            case 'schedule': await loadSchedule(); break;
-            case 'ongoing': await loadOngoing(); break;
-            case 'completed': await loadCompleted(); break;
-            case 'popular': await loadPopular(); break;
-            case 'movies': await loadMovies(); break;
-            case 'genres': loadGenres(); break;
-            case 'batch': loadBatch(); break;
-            case 'favorites': loadFavorites(); break;
-            case 'history': loadHistory(); break;
-            case 'continue': loadContinue(); break;
-            case 'downloads': loadDownloads(); break;
-            case 'premium': showPremiumModal(); break;
-            case 'settings': loadSettings(); break;
-            default: await loadHome();
+        if (page === 'home') {
+            await loadHome();
+        } else if (page === 'schedule') {
+            await loadSchedule();
+        } else if (page === 'ongoing') {
+            await loadOngoing();
+        } else if (page === 'completed') {
+            await loadCompleted();
+        } else if (page === 'popular') {
+            await loadPopular();
+        } else if (page === 'movies') {
+            await loadMovies();
+        } else if (page === 'genres') {
+            loadGenres();
+        } else if (page === 'batch') {
+            loadBatch();
+        } else if (page === 'favorites') {
+            loadFavorites();
+        } else if (page === 'history') {
+            loadHistory();
+        } else if (page === 'continue') {
+            loadContinue();
+        } else if (page === 'downloads') {
+            loadDownloads();
+        } else if (page === 'premium') {
+            showPremiumModal();
+        } else if (page === 'settings') {
+            loadSettings();
+        } else {
+            await loadHome();
         }
         
         offlineNotification.style.display = 'none';
@@ -161,22 +183,22 @@ async function loadPage(page) {
 
 // ==================== API FUNCTIONS ====================
 async function fetchAPI(endpoint) {
-    const url = `${API_BASE}${endpoint}`;
+    var url = API_BASE + endpoint;
     console.log('Fetching:', url);
     
     try {
-        const response = await fetch(url);
+        var response = await fetch(url);
         console.log('Response status:', response.status);
         
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            throw new Error('HTTP ' + response.status);
         }
         
-        const data = await response.json();
+        var data = await response.json();
         console.log('Response data:', data);
         
         if (data.status === 'success' && data.data) {
-            const key = endpoint.split('?')[0].replace(/\//g, '_');
+            var key = endpoint.split('?')[0].replace(/\//g, '_');
             cacheOfflineData(key, data);
         }
         
@@ -200,7 +222,7 @@ function loadOfflineData() {
 }
 
 function renderOfflinePage(page) {
-    const data = offlineData[page]?.data;
+    var data = offlineData[page]?.data;
     if (data) {
         mainContent.innerHTML = `
             <div style="text-align: center; padding: 20px;">
@@ -219,24 +241,26 @@ async function loadHome() {
     showLoading();
     
     try {
-        let popularData, ongoingData;
+        var popularData, ongoingData;
         
         try {
             popularData = await fetchAPI('/popular?page=1');
         } catch (e) {
+            console.log('Gagal ambil popular, coba dari cache');
             popularData = offlineData['_popular?page=1']?.data;
         }
         
         try {
             ongoingData = await fetchAPI('/ongoing?page=1');
         } catch (e) {
+            console.log('Gagal ambil ongoing, coba dari cache');
             ongoingData = offlineData['_ongoing?page=1']?.data;
         }
         
-        const popularAnime = popularData?.data?.animeList || [];
-        const ongoingAnime = ongoingData?.data?.animeList || [];
+        var popularAnime = popularData?.data?.animeList || [];
+        var ongoingAnime = ongoingData?.data?.animeList || [];
         
-        let html = '';
+        var html = '';
         
         if (popularAnime.length > 0) {
             html += `
@@ -247,7 +271,7 @@ async function loadHome() {
                 <div class="horizontal-scroll">
             `;
             
-            popularAnime.slice(0, 15).forEach(anime => {
+            popularAnime.slice(0, 15).forEach(function(anime) {
                 html += `
                     <div class="horizontal-card" onclick="showAnimeDetail('${anime.animeId}')">
                         <img src="${anime.poster || 'https://via.placeholder.com/120x180'}" 
@@ -271,7 +295,7 @@ async function loadHome() {
                 <div class="horizontal-scroll">
             `;
             
-            ongoingAnime.slice(0, 15).forEach(anime => {
+            ongoingAnime.slice(0, 15).forEach(function(anime) {
                 html += `
                     <div class="horizontal-card" onclick="showAnimeDetail('${anime.animeId}')">
                         <img src="${anime.poster || 'https://via.placeholder.com/120x180'}" 
@@ -299,20 +323,20 @@ async function loadHome() {
 }
 
 function getMockHomeData() {
-    const mockPopular = [
+    var mockPopular = [
         { title: 'One Piece', score: '8.73', poster: 'https://via.placeholder.com/120x180', animeId: 'one-piece' },
         { title: 'Jujutsu Kaisen', score: '8.5', poster: 'https://via.placeholder.com/120x180', animeId: 'jujutsu-kaisen' },
         { title: 'Kimetsu no Yaiba', score: '8.7', poster: 'https://via.placeholder.com/120x180', animeId: 'kimetsu' },
-        { title: 'Attack on Titan', score: '9.0', poster: 'https://via.placeholder.com/120x180', animeId: 'aot' },
+        { title: 'Attack on Titan', score: '9.0', poster: 'https://via.placeholder.com/120x180', animeId: 'aot' }
     ];
     
-    const mockOngoing = [
+    var mockOngoing = [
         { title: 'One Piece', poster: 'https://via.placeholder.com/120x180', animeId: 'one-piece' },
         { title: 'Spy x Family', poster: 'https://via.placeholder.com/120x180', animeId: 'spy-x-family' },
-        { title: 'Bleach', poster: 'https://via.placeholder.com/120x180', animeId: 'bleach' },
+        { title: 'Bleach', poster: 'https://via.placeholder.com/120x180', animeId: 'bleach' }
     ];
     
-    let html = `
+    var html = `
         <div class="section-header">
             <h2>🔥 Popular Anime</h2>
             <span class="view-all" onclick="navigateTo('popular')">Lihat Semua</span>
@@ -320,7 +344,7 @@ function getMockHomeData() {
         <div class="horizontal-scroll">
     `;
     
-    mockPopular.forEach(anime => {
+    mockPopular.forEach(function(anime) {
         html += `
             <div class="horizontal-card" onclick="showAnimeDetail('${anime.animeId}')">
                 <img src="${anime.poster}" alt="${anime.title}">
@@ -340,7 +364,7 @@ function getMockHomeData() {
         <div class="horizontal-scroll">
     `;
     
-    mockOngoing.forEach(anime => {
+    mockOngoing.forEach(function(anime) {
         html += `
             <div class="horizontal-card" onclick="showAnimeDetail('${anime.animeId}')">
                 <img src="${anime.poster}" alt="${anime.title}">
@@ -355,801 +379,17 @@ function getMockHomeData() {
     return html;
 }
 
-// ==================== SCHEDULE PAGE ====================
-async function loadSchedule() {
-    showLoading();
-    
-    try {
-        const response = await fetch('https://www.sankavollerei.com/anime/samehadaku/schedule');
-        
-        if (!response.ok) {
-            throw new Error('Schedule error');
-        }
-        
-        const data = await response.json();
-        
-        if (data.status === 'success' && data.data?.days) {
-            renderSchedule(data.data.days);
-            cacheOfflineData('schedule', data);
-        } else {
-            throw new Error('Invalid schedule data');
-        }
-    } catch (error) {
-        console.log('Using mock schedule data');
-        
-        if (offlineData['schedule']) {
-            renderSchedule(offlineData['schedule'].data.data.days);
-        } else {
-            renderMockSchedule();
-        }
-    }
-}
-
-function renderSchedule(daysData) {
-    const dayMapping = {
-        'Monday': 'senin', 'Tuesday': 'selasa', 'Wednesday': 'rabu',
-        'Thursday': 'kamis', 'Friday': 'jumat', 'Saturday': 'sabtu', 'Sunday': 'minggu'
-    };
-    
-    const dayDisplay = {
-        'senin': 'Senin', 'selasa': 'Selasa', 'rabu': 'Rabu', 'kamis': 'Kamis',
-        'jumat': 'Jumat', 'sabtu': 'Sabtu', 'minggu': 'Minggu'
-    };
-    
-    let scheduleByDay = {
-        senin: [], selasa: [], rabu: [], kamis: [], jumat: [], sabtu: [], minggu: []
-    };
-    
-    daysData.forEach(day => {
-        const dayId = dayMapping[day.day] || day.day?.toLowerCase() || '';
-        if (scheduleByDay[dayId] && day.animeList) {
-            scheduleByDay[dayId] = day.animeList.map(anime => ({
-                time: anime.estimation || '??:??',
-                title: anime.title || 'Unknown',
-                type: anime.type || 'TV',
-                score: anime.score || 'N/A',
-                poster: anime.poster || 'https://via.placeholder.com/60x80',
-                animeId: anime.animeId || '',
-                genres: anime.genres || ''
-            }));
-        }
-    });
-    
-    const today = new Date().toLocaleDateString('id-ID', { weekday: 'long' }).toLowerCase();
-    let currentDay = localStorage.getItem('currentDay') || 'senin';
-    
-    const daysTabs = Object.keys(dayDisplay).map(dayId => `
-        <div class="day-tab ${dayId === currentDay ? 'active' : ''}" onclick="changeDay('${dayId}')">
-            ${dayDisplay[dayId]}
-        </div>
-    `).join('');
-    
-    const animeList = scheduleByDay[currentDay] || [];
-    
-    const totalEpisodes = animeList.length;
-    const liveNow = animeList.filter(item => {
-        if (item.time === '??:??' || item.time === 'Update') return false;
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        const [hour, minute] = item.time.split(':').map(Number);
-        return hour === currentHour && Math.abs(minute - currentMinute) <= 30;
-    }).length;
-    
-    const scheduleHTML = animeList.map(anime => {
-        const isLive = anime.time !== '??:??' && anime.time !== 'Update' && (() => {
-            const now = new Date();
-            const [hour, minute] = anime.time.split(':').map(Number);
-            return now.getHours() === hour && Math.abs(now.getMinutes() - minute) <= 30;
-        })();
-        
-        const genres = anime.genres ? 
-            (Array.isArray(anime.genres) ? anime.genres : anime.genres.split(',').map(g => g.trim())) 
-            : [];
-        
-        return `
-            <div class="schedule-item ${isLive ? 'live' : ''}" onclick="showAnimeDetail('${anime.animeId}')">
-                <div class="schedule-time">
-                    <i class="fas fa-clock"></i> 
-                    ${anime.time === 'Update' ? 'Jadwal menyusul' : anime.time}
-                    ${anime.time === 'Update' ? '<span class="badge-update">Update</span>' : ''}
-                    ${isLive ? '<span class="badge-live">LIVE</span>' : ''}
-                </div>
-                <div class="schedule-content">
-                    <img src="${anime.poster}" alt="${anime.title}" class="schedule-poster" onerror="this.src='https://via.placeholder.com/60x80'">
-                    <div class="schedule-info">
-                        <h3 class="schedule-title">${anime.title}</h3>
-                        <div class="schedule-meta">
-                            <span class="badge-type">${anime.type}</span>
-                            <span class="badge-score">⭐ ${anime.score}</span>
-                        </div>
-                        ${genres.length > 0 ? `
-                            <div class="schedule-genres">
-                                ${genres.slice(0, 2).map(g => 
-                                    `<span class="genre-pill">${g}</span>`
-                                ).join('')}
-                                ${genres.length > 2 ? `<span class="genre-pill">+${genres.length-2}</span>` : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    const html = `
-        <div class="schedule-container">
-            <div class="schedule-header">
-                <div>
-                    <h2>📅 Jadwal Rilis Anime</h2>
-                    <p class="schedule-date">
-                        ${new Date().toLocaleDateString('id-ID', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                        })}
-                    </p>
-                </div>
-                <div class="schedule-stats">
-                    <span class="stat-badge">
-                        <i class="fas fa-calendar-day"></i> ${totalEpisodes} Episode
-                    </span>
-                    ${liveNow > 0 ? `
-                        <span class="stat-badge live">
-                            <i class="fas fa-circle"></i> ${liveNow} Sedang Tayang
-                        </span>
-                    ` : ''}
-                </div>
-            </div>
-            
-            <div class="day-tabs">
-                ${daysTabs}
-            </div>
-            
-            <div class="schedule-list">
-                ${scheduleHTML || '<p class="no-schedule">Tidak ada jadwal untuk hari ini</p>'}
-            </div>
-            
-            <div class="schedule-note">
-                <i class="fas fa-info-circle"></i>
-                <span>Jam tayang dalam WIB. ${liveNow > 0 ? '🔴 Live sekarang!' : 'Jadwal dapat berubah sewaktu-waktu.'}</span>
-            </div>
-        </div>
-    `;
-    
-    mainContent.innerHTML = html;
-    localStorage.setItem('currentDay', currentDay);
-}
-
-function renderMockSchedule() {
-    const mockData = {
-        sabtu: [
-            { time: '03:30', title: 'Tensei shitara Dragon no Tamago datta', type: 'TV', score: '6.59', poster: 'https://via.placeholder.com/60x80', animeId: 'tensei-shitara-dragon-no-tamago-datta', genres: 'Action, Adventure' },
-            { time: 'Update', title: 'Dead Account', type: 'TV', score: '6.5', poster: 'https://via.placeholder.com/60x80', animeId: 'dead-account', genres: 'Action, Supernatural' },
-            { time: 'Update', title: 'Hell Mode Yarikomizuki no Gamer', type: 'TV', score: '6.76', poster: 'https://via.placeholder.com/60x80', animeId: 'hell-mode-yarikomizuki-no-gamer', genres: 'Action, Adventure' },
-            { time: 'Update', title: 'Fire Force Season 3 Part 2', type: 'TV', score: '8.05', poster: 'https://via.placeholder.com/60x80', animeId: 'fire-force-season-3-part-2', genres: 'Action, Fantasy' },
-            { time: '03:30', title: 'Kekkon Yubiwa Monogatari Season 2', type: 'TV', score: '6.4', poster: 'https://via.placeholder.com/60x80', animeId: 'kekkon-yubiwa-monogatari-season-2', genres: 'Action, Ecchi' }
-        ],
-        minggu: [
-            { time: '06:30', title: 'Medalist Season 2', type: 'TV', score: '8.1', poster: 'https://via.placeholder.com/60x80', animeId: 'medalist-season-2', genres: 'Drama, Sports' },
-            { time: '04:20', title: 'Jigokuraku Season 2', type: 'TV', score: '8.1', poster: 'https://via.placeholder.com/60x80', animeId: 'jigokuraku-season-2', genres: 'Action, Adventure' },
-            { time: '04:30', title: 'Trigun Stargaze', type: 'TV', score: '7.35', poster: 'https://via.placeholder.com/60x80', animeId: 'trigun-stargaze', genres: 'Action, Adventure' },
-            { time: '04:00', title: 'One Punch Man Season 3', type: 'TV', score: '4.6', poster: 'https://via.placeholder.com/60x80', animeId: 'one-punch-man-season-3', genres: 'Action, Adult Cast' }
-        ],
-        senin: [
-            { time: '04:29', title: 'Vigilante Boku no Hero Academia Illegals Season 2', type: 'TV', score: '7.37', poster: 'https://via.placeholder.com/60x80', animeId: 'vigilante-boku-no-hero-academia-illegals-season-2', genres: 'Action, Shounen' },
-            { time: '05:30', title: 'Kizoku Tensei: Megumareta Umare kara Saikyou no Chikara wo Eru', type: 'TV', score: '6.26', poster: 'https://via.placeholder.com/60x80', animeId: 'kizoku-tensei-megumareta-umare-kara-saikyou-no-chikara-wo-eru', genres: 'Action, Adventure' }
-        ]
-    };
-    
-    const dayDisplay = { senin: 'Senin', selasa: 'Selasa', rabu: 'Rabu', kamis: 'Kamis', jumat: 'Jumat', sabtu: 'Sabtu', minggu: 'Minggu' };
-    
-    const today = new Date().toLocaleDateString('id-ID', { weekday: 'long' }).toLowerCase();
-    let currentDay = localStorage.getItem('currentDay') || (dayDisplay[today] ? today : 'senin');
-    
-    const daysTabs = Object.keys(dayDisplay).map(dayId => `
-        <div class="day-tab ${dayId === currentDay ? 'active' : ''}" onclick="changeDay('${dayId}')">
-            ${dayDisplay[dayId]}
-        </div>
-    `).join('');
-    
-    const animeList = mockData[currentDay] || [];
-    
-    const totalEpisodes = animeList.length;
-    const liveNow = animeList.filter(a => a.time !== 'Update').filter(a => {
-        const [hour, minute] = a.time.split(':').map(Number);
-        const now = new Date();
-        return now.getHours() === hour && Math.abs(now.getMinutes() - minute) <= 30;
-    }).length;
-    
-    const scheduleHTML = animeList.map(anime => {
-        const isLive = anime.time !== 'Update' && (() => {
-            const now = new Date();
-            const [hour, minute] = anime.time.split(':').map(Number);
-            return now.getHours() === hour && Math.abs(now.getMinutes() - minute) <= 30;
-        })();
-        
-        const genres = anime.genres ? anime.genres.split(',').map(g => g.trim()) : [];
-        
-        return `
-            <div class="schedule-item ${isLive ? 'live' : ''}" onclick="showAnimeDetail('${anime.animeId}')">
-                <div class="schedule-time">
-                    <i class="fas fa-clock"></i> 
-                    ${anime.time === 'Update' ? 'Jadwal menyusul' : anime.time}
-                    ${anime.time === 'Update' ? '<span class="badge-update">Update</span>' : ''}
-                    ${isLive ? '<span class="badge-live">LIVE</span>' : ''}
-                </div>
-                <div class="schedule-content">
-                    <img src="${anime.poster}" alt="${anime.title}" class="schedule-poster">
-                    <div class="schedule-info">
-                        <h3 class="schedule-title">${anime.title}</h3>
-                        <div class="schedule-meta">
-                            <span class="badge-type">${anime.type}</span>
-                            <span class="badge-score">⭐ ${anime.score}</span>
-                        </div>
-                        <div class="schedule-genres">
-                            ${genres.slice(0, 2).map(g => 
-                                `<span class="genre-pill">${g}</span>`
-                            ).join('')}
-                            ${genres.length > 2 ? `<span class="genre-pill">+${genres.length-2}</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    const html = `
-        <div class="schedule-container">
-            <div class="schedule-header">
-                <div>
-                    <h2>📅 Jadwal Rilis Anime</h2>
-                    <p class="schedule-date">
-                        ${new Date().toLocaleDateString('id-ID', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                        })}
-                    </p>
-                </div>
-                <div class="schedule-stats">
-                    <span class="stat-badge">
-                        <i class="fas fa-calendar-day"></i> ${totalEpisodes} Episode
-                    </span>
-                    ${liveNow > 0 ? `
-                        <span class="stat-badge live">
-                            <i class="fas fa-circle"></i> ${liveNow} Sedang Tayang
-                        </span>
-                    ` : ''}
-                </div>
-            </div>
-            
-            <div class="day-tabs">
-                ${daysTabs}
-            </div>
-            
-            <div class="schedule-list">
-                ${scheduleHTML || '<p class="no-schedule">Tidak ada jadwal untuk hari ini</p>'}
-            </div>
-            
-            <div class="schedule-note">
-                <i class="fas fa-info-circle"></i>
-                <span>Jam tayang dalam WIB. ${liveNow > 0 ? '🔴 Live sekarang!' : 'Jadwal dapat berubah sewaktu-waktu.'}</span>
-            </div>
-        </div>
-    `;
-    
-    mainContent.innerHTML = html;
-    localStorage.setItem('currentDay', currentDay);
-}
-
-function changeDay(day) {
-    localStorage.setItem('currentDay', day);
-    loadSchedule();
-}
-
-// ==================== ONGOING PAGE ====================
-async function loadOngoing() {
-    try {
-        let data;
-        try {
-            data = await fetchAPI('/ongoing?page=1');
-        } catch (e) {
-            data = offlineData['_ongoing?page=1']?.data;
-        }
-        
-        const animeList = data?.data?.animeList || [];
-        
-        let html = '<h2 style="margin-bottom: 20px;">Ongoing Anime</h2>';
-        
-        if (animeList.length === 0) {
-            html += '<p>Tidak ada data.</p>';
-        } else {
-            html += '<div class="anime-grid">';
-            animeList.forEach(anime => {
-                html += createAnimeCard(anime);
-            });
-            html += '</div>';
-        }
-        
-        mainContent.innerHTML = html;
-    } catch (error) {
-        showError('Gagal memuat ongoing');
-    }
-}
-
-// ==================== COMPLETED PAGE ====================
-async function loadCompleted() {
-    try {
-        let data;
-        try {
-            data = await fetchAPI('/completed?page=1');
-        } catch (e) {
-            data = offlineData['_completed?page=1']?.data;
-        }
-        
-        const animeList = data?.data?.animeList || [];
-        
-        let html = '<h2 style="margin-bottom: 20px;">Completed Anime</h2>';
-        
-        if (animeList.length === 0) {
-            html += '<p>Tidak ada data.</p>';
-        } else {
-            html += '<div class="anime-grid">';
-            animeList.forEach(anime => {
-                html += createAnimeCard(anime);
-            });
-            html += '</div>';
-        }
-        
-        mainContent.innerHTML = html;
-    } catch (error) {
-        showError('Gagal memuat completed');
-    }
-}
-
-// ==================== POPULAR PAGE ====================
-async function loadPopular() {
-    try {
-        let data;
-        try {
-            data = await fetchAPI('/popular?page=1');
-        } catch (e) {
-            data = offlineData['_popular?page=1']?.data;
-        }
-        
-        const animeList = data?.data?.animeList || [];
-        
-        let html = '<h2 style="margin-bottom: 20px;">Popular Anime</h2>';
-        
-        if (animeList.length === 0) {
-            html += '<p>Tidak ada data.</p>';
-        } else {
-            html += '<div class="anime-grid">';
-            animeList.forEach(anime => {
-                html += createAnimeCard(anime);
-            });
-            html += '</div>';
-        }
-        
-        mainContent.innerHTML = html;
-    } catch (error) {
-        showError('Gagal memuat popular');
-    }
-}
-
-// ==================== MOVIES PAGE ====================
-async function loadMovies() {
-    try {
-        let data;
-        try {
-            data = await fetchAPI('/movies');
-        } catch (e) {
-            data = offlineData['_movies']?.data;
-        }
-        
-        const movies = data?.data?.animeList || [];
-        
-        let html = '<h2 style="margin-bottom: 20px;">Movie Anime</h2>';
-        
-        if (movies.length === 0) {
-            html += '<p>Tidak ada data.</p>';
-        } else {
-            html += '<div class="anime-grid">';
-            movies.forEach(movie => {
-                html += createAnimeCard(movie);
-            });
-            html += '</div>';
-        }
-        
-        mainContent.innerHTML = html;
-    } catch (error) {
-        showError('Gagal memuat movies');
-    }
-}
-
-// ==================== GENRES PAGE ====================
-function loadGenres() {
-    const genres = [
-        'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Horror',
-        'Mecha', 'Mystery', 'Romance', 'Sci-Fi', 'Slice of Life', 'Sports',
-        'Supernatural', 'Thriller', 'Ecchi', 'Harem', 'Shounen', 'Seinen'
-    ];
-    
-    let html = '<h2 style="margin-bottom: 20px;">Genre Anime</h2>';
-    html += '<div style="display: flex; flex-wrap: wrap; gap: 10px;">';
-    
-    genres.forEach(genre => {
-        html += `
-            <div class="genre-card" onclick="searchAnime('${genre}')">
-                <i class="fas fa-tag"></i>
-                <span>${genre}</span>
-            </div>
-        `;
-    });
-    
-    html += '</div>';
-    
-    mainContent.innerHTML = html;
-}
-
-// ==================== BATCH PAGE ====================
-function loadBatch() {
-    mainContent.innerHTML = '<h2 style="margin-bottom: 20px;">Batch Download</h2><p>Fitur batch akan segera tersedia</p>';
-}
-
-// ==================== FAVORITES PAGE ====================
-function loadFavorites() {
-    if (favorites.length === 0) {
-        mainContent.innerHTML = `
-            <div style="text-align: center; padding: 50px 20px;">
-                <i class="fas fa-heart" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 15px;"></i>
-                <p>Belum ada anime favorit</p>
-                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 10px;">Tambahkan anime ke favorit dari halaman detail</p>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '<h2 style="margin-bottom: 20px;">Favorit Saya</h2><div class="anime-grid">';
-    favorites.forEach(animeId => {
-        html += `
-            <div class="anime-card" onclick="showAnimeDetail('${animeId}')">
-                <img src="https://via.placeholder.com/200x300" alt="${animeId}">
-                <div class="title">${animeId.replace(/-/g, ' ')}</div>
-                <button class="delete-btn" style="position: absolute; top: 5px; right: 5px; width: 25px; height: 25px; border-radius: 50%; padding: 0;" onclick="removeFromFavorites('${animeId}'); event.stopPropagation();">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-    });
-    html += '</div>';
-    
-    mainContent.innerHTML = html;
-}
-
-// ==================== HISTORY PAGE ====================
-function loadHistory() {
-    if (watchHistory.length === 0) {
-        mainContent.innerHTML = `
-            <div style="text-align: center; padding: 50px 20px;">
-                <i class="fas fa-history" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 15px;"></i>
-                <p>Belum ada riwayat nonton</p>
-                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 10px;">Mulai nonton anime untuk melihat riwayat</p>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '<h2 style="margin-bottom: 20px;">Riwayat Nonton</h2>';
-    
-    watchHistory.slice(0, 20).forEach(item => {
-        html += `
-            <div class="history-item" onclick="continueWatching('${item.animeId}', '${item.episodeId}')">
-                <img src="${item.poster || 'https://via.placeholder.com/60x80'}" class="history-poster" onerror="this.src='https://via.placeholder.com/60x80'">
-                <div class="history-info">
-                    <h4 class="history-title">${item.title}</h4>
-                    <div class="history-episode">Episode ${item.episode}</div>
-                    <div class="history-time">${item.timestamp}</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${item.progress}%"></div>
-                    </div>
-                </div>
-                <button class="delete-btn" onclick="removeFromHistory('${item.episodeId}'); event.stopPropagation();">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `;
-    });
-    
-    mainContent.innerHTML = html;
-}
-
-// ==================== CONTINUE PAGE ====================
-function loadContinue() {
-    const continueList = watchHistory.filter(item => item.progress < 95);
-    
-    if (continueList.length === 0) {
-        mainContent.innerHTML = `
-            <div style="text-align: center; padding: 50px 20px;">
-                <i class="fas fa-play-circle" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 15px;"></i>
-                <p>Tidak ada episode yang belum selesai</p>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '<h2 style="margin-bottom: 20px;">Lanjut Nonton</h2>';
-    
-    continueList.slice(0, 10).forEach(item => {
-        html += `
-            <div class="continue-item" onclick="continueWatching('${item.animeId}', '${item.episodeId}')">
-                <img src="${item.poster || 'https://via.placeholder.com/60x80'}" class="continue-poster" onerror="this.src='https://via.placeholder.com/60x80'">
-                <div class="continue-info">
-                    <h4 class="continue-title">${item.title}</h4>
-                    <div class="continue-episode">Episode ${item.episode}</div>
-                    <div class="continue-progress">${Math.round(item.progress)}% selesai</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${item.progress}%"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    mainContent.innerHTML = html;
-}
-
-// ==================== DOWNLOADS PAGE ====================
-function loadDownloads() {
-    if (downloads.length === 0) {
-        mainContent.innerHTML = `
-            <div style="text-align: center; padding: 50px 20px;">
-                <i class="fas fa-download" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 15px;"></i>
-                <p>Belum ada download</p>
-                ${currentUser?.premium ? 
-                    '<p style="color: var(--text-secondary);">Download episode untuk nonton offline</p>' : 
-                    '<p style="color: var(--warning);">Upgrade Premium untuk download unlimited</p>'}
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '<h2 style="margin-bottom: 20px;">Download Saya</h2>';
-    
-    downloads.forEach(item => {
-        html += `
-            <div class="download-item">
-                <img src="${item.poster || 'https://via.placeholder.com/60x80'}" class="download-poster" onerror="this.src='https://via.placeholder.com/60x80'">
-                <div class="download-info">
-                    <h4 class="download-title">${item.title}</h4>
-                    <div class="download-meta">
-                        <span class="download-quality">${item.quality}</span>
-                        <span class="download-size">${item.size}</span>
-                    </div>
-                    <div class="download-progress">${item.status}</div>
-                    <div class="download-actions">
-                        <button class="download-btn" onclick="playDownload('${item.fileId}')">
-                            <i class="fas fa-play"></i> Putar
-                        </button>
-                        <button class="delete-btn" onclick="deleteDownload('${item.fileId}')">
-                            <i class="fas fa-trash"></i> Hapus
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    mainContent.innerHTML = html;
-}
-
-// ==================== SETTINGS PAGE ====================
-function loadSettings() {
-    mainContent.innerHTML = `
-        <div class="settings-container">
-            <h2 style="margin-bottom: 20px;">Pengaturan</h2>
-            
-            <div class="settings-section">
-                <h3>Akun</h3>
-                <div class="setting-item">
-                    <span>Status Premium</span>
-                    <span class="${currentUser?.premium ? 'badge-live' : ''}">
-                        ${currentUser?.premium ? 'Aktif' : 'Tidak Aktif'}
-                    </span>
-                </div>
-                <div class="setting-item">
-                    <span>Username</span>
-                    <span>${currentUser?.username || 'Guest'}</span>
-                </div>
-                <div class="setting-item">
-                    <span>Email</span>
-                    <span>${currentUser?.email || '-'}</span>
-                </div>
-                ${currentUser?.premium ? `
-                <div class="setting-item">
-                    <span>Masa Aktif Premium</span>
-                    <span>${new Date(currentUser.premiumExpiry).toLocaleDateString('id-ID') || '-'}</span>
-                </div>
-                ` : ''}
-            </div>
-            
-            <div class="settings-section">
-                <h3>Tampilan</h3>
-                <div class="setting-item">
-                    <span>Mode Gelap</span>
-                    <label class="switch">
-                        <input type="checkbox" id="darkMode" onchange="toggleDarkMode()">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="settings-section">
-                <h3>Notifikasi</h3>
-                <div class="setting-item">
-                    <span>Notifikasi Episode Baru</span>
-                    <label class="switch">
-                        <input type="checkbox" id="notifications" onchange="toggleNotifications()">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <div class="settings-section">
-                <h3>Download</h3>
-                <div class="setting-item">
-                    <span>Download via WiFi only</span>
-                    <label class="switch">
-                        <input type="checkbox" id="wifiOnly" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <span>Kualitas Download</span>
-                    <select id="downloadQuality">
-                        <option>360p</option>
-                        <option selected>480p</option>
-                        <option>720p</option>
-                        <option>1080p</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="settings-section">
-                <h3>Cache</h3>
-                <button class="clear-cache-btn" onclick="clearCache()">
-                    <i class="fas fa-trash"></i> Hapus Cache
-                </button>
-            </div>
-            
-            <div class="about-section">
-                <h3>Tentang</h3>
-                <p><strong>TeNIME v1.0.0</strong></p>
-                <p style="margin-top: 10px;">Aplikasi streaming anime dari Samehadaku API</p>
-                <p style="margin-top: 5px;">Package: com.dtest.tenime</p>
-                <p style="margin-top: 5px; font-size: 11px;">© 2025 TeNIME. All rights reserved.</p>
-            </div>
-        </div>
-    `;
-    
-    const darkMode = localStorage.getItem('darkMode') === 'true';
-    const notifications = localStorage.getItem('notifications') === 'true';
-    
-    const darkModeCheckbox = document.getElementById('darkMode');
-    const notificationsCheckbox = document.getElementById('notifications');
-    
-    if (darkModeCheckbox) darkModeCheckbox.checked = darkMode;
-    if (notificationsCheckbox) notificationsCheckbox.checked = notifications;
-    
-    if (darkMode) enableDarkMode();
-}
-
-// ==================== ANIME DETAIL ====================
-async function showAnimeDetail(animeId) {
-    showLoading();
-    
-    try {
-        let data;
-        try {
-            data = await fetchAPI(`/anime/${animeId}`);
-        } catch (e) {
-            console.log('Gagal ambil detail, pakai data mock');
-        }
-        
-        const anime = data?.data || {
-            title: animeId.replace(/-/g, ' '),
-            poster: 'https://via.placeholder.com/300x400',
-            score: { value: '8.5' },
-            status: 'Ongoing',
-            type: 'TV',
-            duration: '24 min',
-            genreList: [
-                { title: 'Action' },
-                { title: 'Adventure' },
-                { title: 'Fantasy' }
-            ],
-            synopsis: { paragraphs: ['Sinopsis tidak tersedia.'] },
-            episodeList: Array.from({ length: 12 }, (_, i) => ({ 
-                title: i + 1, 
-                episodeId: `${animeId}-episode-${i + 1}` 
-            }))
-        };
-        
-        const isFavorite = favorites.includes(animeId);
-        
-        let html = `
-            <div class="detail-container">
-                <div class="detail-header">
-                    <img src="${anime.poster || ''}" class="detail-backdrop" alt="" onerror="this.style.display='none'">
-                    <img src="${anime.poster || 'https://via.placeholder.com/150x200'}" class="detail-poster" alt="${anime.title}" onerror="this.src='https://via.placeholder.com/150x200'">
-                </div>
-                
-                <div class="detail-info">
-                    <h1>${anime.title || anime.english || 'Unknown'}</h1>
-                    
-                    <div class="detail-meta">
-                        <span class="meta-item">⭐ ${anime.score?.value || anime.score || 'N/A'}</span>
-                        <span class="meta-item">${anime.status || 'Unknown'}</span>
-                        <span class="meta-item">${anime.type || 'Unknown'}</span>
-                        <span class="meta-item">${anime.duration || 'Unknown'}</span>
-                    </div>
-                    
-                    <div class="genre-tags">
-                        ${(anime.genreList || []).map(g => 
-                            `<span class="genre-tag" onclick="searchAnime('${g.title}')">${g.title}</span>`
-                        ).join('')}
-                    </div>
-                    
-                    <div class="detail-synopsis">
-                        ${anime.synopsis?.paragraphs?.join(' ') || anime.synopsis || 'Tidak ada sinopsis.'}
-                    </div>
-                    
-                    <h3 style="margin: 20px 0 10px;">Daftar Episode</h3>
-                    <div class="episode-list">
-                        ${(anime.episodeList || []).map(ep => 
-                            `<div class="episode-item" onclick="showEpisode('${ep.episodeId}')">Episode ${ep.title}</div>`
-                        ).join('')}
-                        ${(!anime.episodeList || anime.episodeList.length === 0) ? 
-                            '<p>Belum ada episode.</p>' : ''}
-                    </div>
-                    
-                    <button class="favorite-btn ${isFavorite ? 'in-favorite' : 'not-favorite'}" onclick="toggleFavorite('${animeId}')">
-                        <i class="fas fa-heart"></i> ${isFavorite ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}
-                    </button>
-                    
-                    ${currentUser?.premium ? `
-                        <button class="download-btn" style="margin-top: 10px; width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 10px; cursor: pointer;" onclick="downloadAnime('${animeId}')">
-                            <i class="fas fa-download"></i> Download Batch
-                        </button>
-                    ` : ''}
-                </div>
-            </div>
-        `;
-        
-        mainContent.innerHTML = html;
-    } catch (error) {
-        showError('Gagal memuat detail: ' + error.message);
-    }
-}
-
-// ==================== EPISODE PLAYER (AUTO PLAY + RESOLUTION SELECTOR) ====================
+// ==================== VIDEO PLAYER (VERSION SUPER SIMPLE) ====================
 async function showEpisode(episodeId) {
     showLoading();
     
     try {
-        const response = await fetch(`https://www.sankavollerei.com/anime/samehadaku/episode/${episodeId}`);
-        const data = await response.json();
-        const episode = data?.data || {};
+        var response = await fetch('https://www.sankavollerei.com/anime/samehadaku/episode/' + episodeId);
+        var data = await response.json();
+        var episode = data?.data || {};
         
         console.log('Episode data:', episode);
         
-        currentEpisodeData = episode;
-        currentEpisodeId = episodeId;
-        
-        // Simpan ke history
         addToHistory({
             animeId: episode.animeId || episodeId.split('-')[0],
             episodeId: episodeId,
@@ -1160,73 +400,33 @@ async function showEpisode(episodeId) {
             timestamp: new Date().toLocaleString()
         });
         
-        // Organize servers by resolution
-        availableServers = {
-            '4k': [],
-            '1080p': [],
-            '720p': [],
-            '480p': [],
-            '360p': [],
-            'unknown': []
-        };
-        
-        if (episode.server?.qualities) {
-            episode.server.qualities.forEach(quality => {
-                const qualityName = quality.title.toLowerCase();
+        // Kumpulkan semua server
+        var serverList = [];
+        if (episode.server && episode.server.qualities) {
+            for (var i = 0; i < episode.server.qualities.length; i++) {
+                var quality = episode.server.qualities[i];
                 if (quality.serverList && quality.serverList.length > 0) {
-                    if (qualityName.includes('4k')) availableServers['4k'].push(...quality.serverList);
-                    else if (qualityName.includes('1080')) availableServers['1080p'].push(...quality.serverList);
-                    else if (qualityName.includes('720')) availableServers['720p'].push(...quality.serverList);
-                    else if (qualityName.includes('480')) availableServers['480p'].push(...quality.serverList);
-                    else if (qualityName.includes('360')) availableServers['360p'].push(...quality.serverList);
-                    else availableServers['unknown'].push(...quality.serverList);
-                }
-            });
-        }
-        
-        // Tentukan resolusi default berdasarkan koneksi
-        let defaultRes = '720p';
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        if (connection) {
-            const speed = connection.downlink;
-            if (speed > 5) defaultRes = '1080p';
-            else if (speed > 2) defaultRes = '720p';
-            else if (speed > 1) defaultRes = '480p';
-            else defaultRes = '360p';
-        }
-        
-        // Cari server dengan resolusi default
-        let defaultServers = availableServers[defaultRes];
-        if (!defaultServers || defaultServers.length === 0) {
-            // Coba resolusi lain
-            const resolutions = ['1080p', '720p', '480p', '360p', '4k', 'unknown'];
-            for (const res of resolutions) {
-                if (availableServers[res] && availableServers[res].length > 0) {
-                    defaultServers = availableServers[res];
-                    defaultRes = res;
-                    break;
+                    for (var j = 0; j < quality.serverList.length; j++) {
+                        var server = quality.serverList[j];
+                        serverList.push({
+                            name: quality.title + ' - ' + server.title,
+                            id: server.serverId
+                        });
+                    }
                 }
             }
         }
         
-        // Buat HTML untuk resolution selector
-        const resolutionOptions = [];
-        const resolutions = ['4k', '1080p', '720p', '480p', '360p'];
+        // Buat HTML dengan dropdown resolusi
+        var optionsHtml = '';
+        if (serverList.length > 0) {
+            for (var k = 0; k < serverList.length; k++) {
+                var s = serverList[k];
+                optionsHtml += '<option value="' + s.id + '">' + s.name + '</option>';
+            }
+        }
         
-        resolutions.forEach(res => {
-            const hasServer = availableServers[res] && availableServers[res].length > 0;
-            const displayName = res.toUpperCase();
-            const isActive = (res === defaultRes) ? 'active' : '';
-            
-            resolutionOptions.push(`
-                <option value="${res}" ${isActive} ${!hasServer ? 'disabled' : ''}>
-                    ${displayName} ${!hasServer ? '(Tidak Tersedia)' : ''}
-                </option>
-            `);
-        });
-        
-        // HTML utama
-        const html = `
+        var html = `
             <div class="video-container">
                 <div class="video-player" id="videoPlayerContainer" style="background: #000; min-height: 300px; display: flex; align-items: center; justify-content: center;">
                     <div style="text-align: center; color: white;">
@@ -1238,26 +438,20 @@ async function showEpisode(episodeId) {
                 <div class="video-info">
                     <h2 class="video-title">${episode.title || 'Episode ' + episodeId}</h2>
                     
-                    <div class="video-controls-row" style="display: flex; align-items: center; gap: 15px; margin: 15px 0;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin: 15px 0;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <label for="resolutionSelect" style="font-weight: 600;">Resolusi:</label>
-                            <select id="resolutionSelect" class="resolution-select" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);">
-                                ${resolutionOptions.join('')}
+                            <label for="serverSelect" style="font-weight: 600;">Resolusi:</label>
+                            <select id="serverSelect" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); width: 200px;">
+                                ${optionsHtml || '<option>Tidak ada server</option>'}
                             </select>
                         </div>
                         
-                        <div class="video-nav" style="display: flex; gap: 10px; margin-left: auto;">
+                        <div style="display: flex; gap: 10px; margin-left: auto;">
                             ${episode.hasPrevEpisode ? 
-                                `<button class="nav-btn" onclick="showEpisode('${episode.prevEpisode.episodeId}')">
-                                    <i class="fas fa-chevron-left"></i> Prev
-                                </button>` : ''}
-                            <button class="nav-btn" onclick="showAnimeDetail('${episode.animeId || episodeId.split('-')[0]}')">
-                                <i class="fas fa-info-circle"></i> Detail
-                            </button>
+                                '<button class="nav-btn" onclick="showEpisode(\'' + episode.prevEpisode.episodeId + '\')"><i class="fas fa-chevron-left"></i> Prev</button>' : ''}
+                            <button class="nav-btn" onclick="showAnimeDetail(\'' + (episode.animeId || episodeId.split('-')[0]) + '\')"><i class="fas fa-info-circle"></i> Detail</button>
                             ${episode.hasNextEpisode ? 
-                                `<button class="nav-btn" onclick="showEpisode('${episode.nextEpisode.episodeId}')">
-                                    Next <i class="fas fa-chevron-right"></i>
-                                </button>` : ''}
+                                '<button class="nav-btn" onclick="showEpisode(\'' + episode.nextEpisode.episodeId + '\')">Next <i class="fas fa-chevron-right"></i></button>' : ''}
                         </div>
                     </div>
                     
@@ -1266,22 +460,21 @@ async function showEpisode(episodeId) {
         `;
         
         // Tambah link download
-        if (episode.downloadUrl?.formats) {
-            episode.downloadUrl.formats.forEach(format => {
+        if (episode.downloadUrl && episode.downloadUrl.formats) {
+            for (var f = 0; f < episode.downloadUrl.formats.length; f++) {
+                var format = episode.downloadUrl.formats[f];
                 if (format.qualities) {
-                    format.qualities.forEach(quality => {
+                    for (var q = 0; q < format.qualities.length; q++) {
+                        var quality = format.qualities[q];
                         if (quality.urls) {
-                            quality.urls.forEach(url => {
-                                html += `
-                                    <a href="${url.url}" target="_blank" class="download-link" rel="noopener noreferrer">
-                                        ${url.title} - ${quality.title}
-                                    </a>
-                                `;
-                            });
+                            for (var u = 0; u < quality.urls.length; u++) {
+                                var url = quality.urls[u];
+                                html += '<a href="' + url.url + '" target="_blank" class="download-link" rel="noopener noreferrer">' + url.title + ' - ' + quality.title + '</a>';
+                            }
                         }
-                    });
+                    }
                 }
-            });
+            }
         } else {
             html += '<p>Tidak ada link download tersedia</p>';
         }
@@ -1294,37 +487,26 @@ async function showEpisode(episodeId) {
         
         mainContent.innerHTML = html;
         
-        // Load video dengan resolusi default
-        if (defaultServers && defaultServers.length > 0) {
-            await loadVideoFromServer(defaultServers[0].serverId, episodeId);
-        } else {
-            document.getElementById('videoPlayerContainer').innerHTML = `
-                <div style="text-align: center; color: white;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px; color: #f56565;"></i>
-                    <p>Tidak ada server tersedia</p>
-                </div>
-            `;
+        // Auto pilih server pertama dan play
+        if (serverList.length > 0) {
+            var firstServerId = serverList[0].id;
+            loadSimpleServer(firstServerId, episodeId);
         }
         
-        // Event listener untuk ganti resolusi
-        document.getElementById('resolutionSelect').addEventListener('change', async (e) => {
-            const selectedRes = e.target.value;
-            const servers = availableServers[selectedRes];
-            
-            if (servers && servers.length > 0) {
-                const container = document.getElementById('videoPlayerContainer');
+        // Event listener untuk ganti server
+        var serverSelect = document.getElementById('serverSelect');
+        if (serverSelect) {
+            serverSelect.addEventListener('change', function(e) {
+                var container = document.getElementById('videoPlayerContainer');
                 container.innerHTML = `
                     <div style="text-align: center; color: white;">
                         <i class="fas fa-spinner fa-spin" style="font-size: 48px; margin-bottom: 15px;"></i>
                         <p>Mengganti resolusi...</p>
                     </div>
                 `;
-                
-                await loadVideoFromServer(servers[0].serverId, episodeId);
-            } else {
-                alert(`Tidak ada server untuk resolusi ${selectedRes}`);
-            }
-        });
+                loadSimpleServer(e.target.value, episodeId);
+            });
+        }
         
     } catch (error) {
         console.error('Episode error:', error);
@@ -1332,27 +514,27 @@ async function showEpisode(episodeId) {
     }
 }
 
-// Fungsi untuk load video dari server
-async function loadVideoFromServer(serverId, episodeId) {
-    const container = document.getElementById('videoPlayerContainer');
+// Fungsi sederhana untuk load server
+async function loadSimpleServer(serverId, episodeId) {
+    var container = document.getElementById('videoPlayerContainer');
     if (!container) return;
     
     try {
-        const response = await fetch(`https://www.sankavollerei.com/anime/samehadaku/server/${serverId}`);
-        const data = await response.json();
+        var response = await fetch('https://www.sankavollerei.com/anime/samehadaku/server/' + serverId);
+        var data = await response.json();
         
-        let videoUrl = data.data?.url || data.url || data.video || data.stream || data.source || data.link;
+        var videoUrl = data.data?.url || data.url || data.video || data.stream || data.source || data.link;
         
         if (!videoUrl) {
             throw new Error('URL video tidak ditemukan');
         }
         
-        // Hapus konten lama
+        // Bersihkan container
         container.innerHTML = '';
         
         // Cek tipe video
-        if (videoUrl.includes('blogger.com')) {
-            const iframe = document.createElement('iframe');
+        if (videoUrl.indexOf('blogger.com') > -1) {
+            var iframe = document.createElement('iframe');
             iframe.src = videoUrl;
             iframe.style.width = '100%';
             iframe.style.height = '100%';
@@ -1360,14 +542,14 @@ async function loadVideoFromServer(serverId, episodeId) {
             iframe.allowFullscreen = true;
             container.appendChild(iframe);
         } else {
-            const video = document.createElement('video');
+            var video = document.createElement('video');
             video.controls = true;
             video.autoplay = true;
             video.playsInline = true;
             video.style.width = '100%';
             video.style.height = '100%';
             
-            const source = document.createElement('source');
+            var source = document.createElement('source');
             source.src = videoUrl;
             source.type = 'video/mp4';
             
@@ -1375,15 +557,12 @@ async function loadVideoFromServer(serverId, episodeId) {
             container.appendChild(video);
             
             // Tracking progress
-            video.addEventListener('timeupdate', () => {
-                const progress = (video.currentTime / video.duration) * 100;
+            video.addEventListener('timeupdate', function() {
+                var progress = (video.currentTime / video.duration) * 100;
                 if (!isNaN(progress)) {
                     updateHistoryProgress(episodeId, progress);
                 }
             });
-            
-            // Auto play
-            video.play().catch(e => console.log('Autoplay prevented:', e));
         }
         
     } catch (error) {
@@ -1407,22 +586,22 @@ async function searchAnime(keyword) {
     showLoading();
     
     try {
-        let data;
+        var data;
         try {
-            data = await fetchAPI(`/search?q=${encodeURIComponent(keyword)}`);
+            data = await fetchAPI('/search?q=' + encodeURIComponent(keyword));
         } catch (e) {
-            data = offlineData[`_search?q=${keyword}`]?.data;
+            data = offlineData['_search?q=' + keyword]?.data;
         }
         
-        const results = data?.data?.animeList || [];
+        var results = data?.data?.animeList || [];
         
-        let html = `<h2 style="margin-bottom: 20px;">Hasil pencarian: "${keyword}"</h2>`;
+        var html = '<h2 style="margin-bottom: 20px;">Hasil pencarian: "' + keyword + '"</h2>';
         
         if (results.length === 0) {
             html += '<p>Tidak ditemukan.</p>';
         } else {
             html += '<div class="anime-grid">';
-            results.forEach(anime => {
+            results.forEach(function(anime) {
                 html += createAnimeCard(anime);
             });
             html += '</div>';
@@ -1441,26 +620,26 @@ function toggleFavorite(animeId) {
         return;
     }
     
-    if (favorites.includes(animeId)) {
-        favorites = favorites.filter(id => id !== animeId);
+    if (favorites.indexOf(animeId) > -1) {
+        favorites = favorites.filter(function(id) { return id !== animeId; });
     } else {
         favorites.push(animeId);
     }
     
     localStorage.setItem('favorites', JSON.stringify(favorites));
     
-    const btn = document.querySelector('.favorite-btn');
+    var btn = document.querySelector('.favorite-btn');
     if (btn) {
-        const isFavorite = favorites.includes(animeId);
-        btn.className = `favorite-btn ${isFavorite ? 'in-favorite' : 'not-favorite'}`;
-        btn.innerHTML = `<i class="fas fa-heart"></i> ${isFavorite ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}`;
+        var isFavorite = favorites.indexOf(animeId) > -1;
+        btn.className = 'favorite-btn ' + (isFavorite ? 'in-favorite' : 'not-favorite');
+        btn.innerHTML = '<i class="fas fa-heart"></i> ' + (isFavorite ? 'Hapus dari Favorit' : 'Tambah ke Favorit');
     }
     
     updateBadges();
 }
 
 function removeFromFavorites(animeId) {
-    favorites = favorites.filter(id => id !== animeId);
+    favorites = favorites.filter(function(id) { return id !== animeId; });
     localStorage.setItem('favorites', JSON.stringify(favorites));
     loadFavorites();
     updateBadges();
@@ -1468,13 +647,19 @@ function removeFromFavorites(animeId) {
 
 // ==================== HISTORY ====================
 function addToHistory(item) {
-    watchHistory = [item, ...watchHistory.filter(h => h.episodeId !== item.episodeId)].slice(0, 50);
+    watchHistory = [item].concat(watchHistory.filter(function(h) { return h.episodeId !== item.episodeId; })).slice(0, 50);
     localStorage.setItem('watchHistory', JSON.stringify(watchHistory));
     updateBadges();
 }
 
 function updateHistoryProgress(episodeId, progress) {
-    const index = watchHistory.findIndex(h => h.episodeId === episodeId);
+    var index = -1;
+    for (var i = 0; i < watchHistory.length; i++) {
+        if (watchHistory[i].episodeId === episodeId) {
+            index = i;
+            break;
+        }
+    }
     if (index !== -1) {
         watchHistory[index].progress = progress;
         localStorage.setItem('watchHistory', JSON.stringify(watchHistory));
@@ -1482,7 +667,7 @@ function updateHistoryProgress(episodeId, progress) {
 }
 
 function removeFromHistory(episodeId) {
-    watchHistory = watchHistory.filter(h => h.episodeId !== episodeId);
+    watchHistory = watchHistory.filter(function(h) { return h.episodeId !== episodeId; });
     localStorage.setItem('watchHistory', JSON.stringify(watchHistory));
     loadHistory();
     updateBadges();
@@ -1492,145 +677,692 @@ function continueWatching(animeId, episodeId) {
     showEpisode(episodeId);
 }
 
-// ==================== DOWNLOADS ====================
-function downloadAnime(animeId) {
-    if (!currentUser?.premium) {
-        alert('Fitur download hanya untuk pengguna premium');
-        showPremiumModal();
-        return;
-    }
-    
-    alert('Download batch akan segera tersedia');
-}
-
-function downloadEpisode(episodeId) {
-    if (!currentUser?.premium) {
-        alert('Fitur download hanya untuk pengguna premium');
-        showPremiumModal();
-        return;
-    }
-    
-    const newDownload = {
-        fileId: 'DL' + Date.now(),
-        title: 'Downloading...',
-        quality: '480p',
-        size: '150 MB',
-        status: 'Mengunduh...',
-        progress: 0,
-        poster: 'https://via.placeholder.com/60x80'
-    };
-    
-    downloads.push(newDownload);
-    localStorage.setItem('downloads', JSON.stringify(downloads));
-    updateBadges();
-    
-    alert('Download dimulai');
-    
-    setTimeout(() => {
-        const index = downloads.findIndex(d => d.fileId === newDownload.fileId);
-        if (index !== -1) {
-            downloads[index].status = 'Selesai';
-            downloads[index].progress = 100;
-            localStorage.setItem('downloads', JSON.stringify(downloads));
-            if (currentPage === 'downloads') {
-                loadDownloads();
-            }
+// ==================== LOAD OTHER PAGES (SIMPLIFIED) ====================
+async function loadOngoing() {
+    try {
+        var data;
+        try {
+            data = await fetchAPI('/ongoing?page=1');
+        } catch (e) {
+            data = offlineData['_ongoing?page=1']?.data;
         }
-    }, 5000);
-}
-
-function deleteDownload(fileId) {
-    downloads = downloads.filter(d => d.fileId !== fileId);
-    localStorage.setItem('downloads', JSON.stringify(downloads));
-    loadDownloads();
-    updateBadges();
-}
-
-function playDownload(fileId) {
-    const download = downloads.find(d => d.fileId === fileId);
-    if (download) {
-        alert('Fitur putar download akan segera tersedia. File: ' + download.title);
-    }
-}
-
-// ==================== GOOGLE LOGIN ====================
-function initGoogleLogin() {
-    if (typeof google !== 'undefined' && google.accounts) {
-        google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: handleGoogleCredential,
-            auto_select: false,
-            cancel_on_tap_outside: true
-        });
         
-        google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed()) {
-                console.log('Google One Tap not displayed');
-            }
-        });
+        var animeList = data?.data?.animeList || [];
+        
+        var html = '<h2 style="margin-bottom: 20px;">Ongoing Anime</h2>';
+        
+        if (animeList.length === 0) {
+            html += '<p>Tidak ada data.</p>';
+        } else {
+            html += '<div class="anime-grid">';
+            animeList.forEach(function(anime) {
+                html += createAnimeCard(anime);
+            });
+            html += '</div>';
+        }
+        
+        mainContent.innerHTML = html;
+    } catch (error) {
+        showError('Gagal memuat ongoing');
     }
 }
 
-function handleGoogleCredential(response) {
-    console.log('Google credential received');
+async function loadCompleted() {
+    try {
+        var data;
+        try {
+            data = await fetchAPI('/completed?page=1');
+        } catch (e) {
+            data = offlineData['_completed?page=1']?.data;
+        }
+        
+        var animeList = data?.data?.animeList || [];
+        
+        var html = '<h2 style="margin-bottom: 20px;">Completed Anime</h2>';
+        
+        if (animeList.length === 0) {
+            html += '<p>Tidak ada data.</p>';
+        } else {
+            html += '<div class="anime-grid">';
+            animeList.forEach(function(anime) {
+                html += createAnimeCard(anime);
+            });
+            html += '</div>';
+        }
+        
+        mainContent.innerHTML = html;
+    } catch (error) {
+        showError('Gagal memuat completed');
+    }
+}
+
+async function loadPopular() {
+    try {
+        var data;
+        try {
+            data = await fetchAPI('/popular?page=1');
+        } catch (e) {
+            data = offlineData['_popular?page=1']?.data;
+        }
+        
+        var animeList = data?.data?.animeList || [];
+        
+        var html = '<h2 style="margin-bottom: 20px;">Popular Anime</h2>';
+        
+        if (animeList.length === 0) {
+            html += '<p>Tidak ada data.</p>';
+        } else {
+            html += '<div class="anime-grid">';
+            animeList.forEach(function(anime) {
+                html += createAnimeCard(anime);
+            });
+            html += '</div>';
+        }
+        
+        mainContent.innerHTML = html;
+    } catch (error) {
+        showError('Gagal memuat popular');
+    }
+}
+
+async function loadMovies() {
+    try {
+        var data;
+        try {
+            data = await fetchAPI('/movies');
+        } catch (e) {
+            data = offlineData['_movies']?.data;
+        }
+        
+        var movies = data?.data?.animeList || [];
+        
+        var html = '<h2 style="margin-bottom: 20px;">Movie Anime</h2>';
+        
+        if (movies.length === 0) {
+            html += '<p>Tidak ada data.</p>';
+        } else {
+            html += '<div class="anime-grid">';
+            movies.forEach(function(movie) {
+                html += createAnimeCard(movie);
+            });
+            html += '</div>';
+        }
+        
+        mainContent.innerHTML = html;
+    } catch (error) {
+        showError('Gagal memuat movies');
+    }
+}
+
+function loadGenres() {
+    var genres = [
+        'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Horror',
+        'Mecha', 'Mystery', 'Romance', 'Sci-Fi', 'Slice of Life', 'Sports',
+        'Supernatural', 'Thriller', 'Ecchi', 'Harem', 'Shounen', 'Seinen'
+    ];
+    
+    var html = '<h2 style="margin-bottom: 20px;">Genre Anime</h2>';
+    html += '<div style="display: flex; flex-wrap: wrap; gap: 10px;">';
+    
+    genres.forEach(function(genre) {
+        html += '<div class="genre-card" onclick="searchAnime(\'' + genre + '\')"><i class="fas fa-tag"></i> ' + genre + '</div>';
+    });
+    
+    html += '</div>';
+    
+    mainContent.innerHTML = html;
+}
+
+function loadBatch() {
+    mainContent.innerHTML = '<h2 style="margin-bottom: 20px;">Batch Download</h2><p>Fitur batch akan segera tersedia</p>';
+}
+
+function loadFavorites() {
+    if (favorites.length === 0) {
+        mainContent.innerHTML = `
+            <div style="text-align: center; padding: 50px 20px;">
+                <i class="fas fa-heart" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 15px;"></i>
+                <p>Belum ada anime favorit</p>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 10px;">Tambahkan anime ke favorit dari halaman detail</p>
+            </div>
+        `;
+        return;
+    }
+    
+    var html = '<h2 style="margin-bottom: 20px;">Favorit Saya</h2><div class="anime-grid">';
+    favorites.forEach(function(animeId) {
+        html += '<div class="anime-card" onclick="showAnimeDetail(\'' + animeId + '\')">' +
+                '<img src="https://via.placeholder.com/200x300" alt="' + animeId + '">' +
+                '<div class="title">' + animeId.replace(/-/g, ' ') + '</div>' +
+                '<button class="delete-btn" style="position: absolute; top: 5px; right: 5px; width: 25px; height: 25px; border-radius: 50%; padding: 0;" onclick="removeFromFavorites(\'' + animeId + '\'); event.stopPropagation();">' +
+                '<i class="fas fa-times"></i></button></div>';
+    });
+    html += '</div>';
+    
+    mainContent.innerHTML = html;
+}
+
+function loadHistory() {
+    if (watchHistory.length === 0) {
+        mainContent.innerHTML = `
+            <div style="text-align: center; padding: 50px 20px;">
+                <i class="fas fa-history" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 15px;"></i>
+                <p>Belum ada riwayat nonton</p>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 10px;">Mulai nonton anime untuk melihat riwayat</p>
+            </div>
+        `;
+        return;
+    }
+    
+    var html = '<h2 style="margin-bottom: 20px;">Riwayat Nonton</h2>';
+    
+    watchHistory.slice(0, 20).forEach(function(item) {
+        html += '<div class="history-item" onclick="continueWatching(\'' + item.animeId + '\', \'' + item.episodeId + '\')">' +
+                '<img src="' + (item.poster || 'https://via.placeholder.com/60x80') + '" class="history-poster" onerror="this.src=\'https://via.placeholder.com/60x80\'">' +
+                '<div class="history-info">' +
+                '<h4 class="history-title">' + item.title + '</h4>' +
+                '<div class="history-episode">Episode ' + item.episode + '</div>' +
+                '<div class="history-time">' + item.timestamp + '</div>' +
+                '<div class="progress-bar"><div class="progress-fill" style="width: ' + item.progress + '%"></div></div>' +
+                '</div>' +
+                '<button class="delete-btn" onclick="removeFromHistory(\'' + item.episodeId + '\'); event.stopPropagation();"><i class="fas fa-trash"></i></button>' +
+                '</div>';
+    });
+    
+    mainContent.innerHTML = html;
+}
+
+function loadContinue() {
+    var continueList = watchHistory.filter(function(item) { return item.progress < 95; });
+    
+    if (continueList.length === 0) {
+        mainContent.innerHTML = `
+            <div style="text-align: center; padding: 50px 20px;">
+                <i class="fas fa-play-circle" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 15px;"></i>
+                <p>Tidak ada episode yang belum selesai</p>
+            </div>
+        `;
+        return;
+    }
+    
+    var html = '<h2 style="margin-bottom: 20px;">Lanjut Nonton</h2>';
+    
+    continueList.slice(0, 10).forEach(function(item) {
+        html += '<div class="continue-item" onclick="continueWatching(\'' + item.animeId + '\', \'' + item.episodeId + '\')">' +
+                '<img src="' + (item.poster || 'https://via.placeholder.com/60x80') + '" class="continue-poster" onerror="this.src=\'https://via.placeholder.com/60x80\'">' +
+                '<div class="continue-info">' +
+                '<h4 class="continue-title">' + item.title + '</h4>' +
+                '<div class="continue-episode">Episode ' + item.episode + '</div>' +
+                '<div class="continue-progress">' + Math.round(item.progress) + '% selesai</div>' +
+                '<div class="progress-bar"><div class="progress-fill" style="width: ' + item.progress + '%"></div></div>' +
+                '</div></div>';
+    });
+    
+    mainContent.innerHTML = html;
+}
+
+function loadDownloads() {
+    if (downloads.length === 0) {
+        mainContent.innerHTML = `
+            <div style="text-align: center; padding: 50px 20px;">
+                <i class="fas fa-download" style="font-size: 48px; color: var(--text-secondary); margin-bottom: 15px;"></i>
+                <p>Belum ada download</p>
+                ${currentUser?.premium ? 
+                    '<p style="color: var(--text-secondary);">Download episode untuk nonton offline</p>' : 
+                    '<p style="color: var(--warning);">Upgrade Premium untuk download unlimited</p>'}
+            </div>
+        `;
+        return;
+    }
+    
+    var html = '<h2 style="margin-bottom: 20px;">Download Saya</h2>';
+    
+    downloads.forEach(function(item) {
+        html += '<div class="download-item">' +
+                '<img src="' + (item.poster || 'https://via.placeholder.com/60x80') + '" class="download-poster" onerror="this.src=\'https://via.placeholder.com/60x80\'">' +
+                '<div class="download-info">' +
+                '<h4 class="download-title">' + item.title + '</h4>' +
+                '<div class="download-meta">' +
+                '<span class="download-quality">' + item.quality + '</span>' +
+                '<span class="download-size">' + item.size + '</span>' +
+                '</div>' +
+                '<div class="download-progress">' + item.status + '</div>' +
+                '<div class="download-actions">' +
+                '<button class="download-btn" onclick="playDownload(\'' + item.fileId + '\')"><i class="fas fa-play"></i> Putar</button>' +
+                '<button class="delete-btn" onclick="deleteDownload(\'' + item.fileId + '\')"><i class="fas fa-trash"></i> Hapus</button>' +
+                '</div></div></div>';
+    });
+    
+    mainContent.innerHTML = html;
+}
+
+function loadSettings() {
+    var isDark = localStorage.getItem('darkMode') === 'true';
+    var notifEnabled = localStorage.getItem('notifications') === 'true';
+    
+    mainContent.innerHTML = `
+        <div class="settings-container">
+            <h2 style="margin-bottom: 20px;">Pengaturan</h2>
+            
+            <div class="settings-section">
+                <h3>Akun</h3>
+                <div class="setting-item">
+                    <span>Status Premium</span>
+                    <span class="${currentUser?.premium ? 'badge-live' : ''}">
+                        ${currentUser?.premium ? 'Aktif' : 'Tidak Aktif'}
+                    </span>
+                </div>
+                <div class="setting-item">
+                    <span>Username</span>
+                    <span>${currentUser?.username || 'Guest'}</span>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Tampilan</h3>
+                <div class="setting-item">
+                    <span>Mode Gelap</span>
+                    <label class="switch">
+                        <input type="checkbox" id="darkMode" ${isDark ? 'checked' : ''} onchange="toggleDarkMode()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h3>Cache</h3>
+                <button class="clear-cache-btn" onclick="clearCache()">
+                    <i class="fas fa-trash"></i> Hapus Cache
+                </button>
+            </div>
+            
+            <div class="about-section">
+                <h3>Tentang</h3>
+                <p><strong>TeNIME v1.0.0</strong></p>
+                <p style="margin-top: 10px;">Aplikasi streaming anime dari Samehadaku API</p>
+                <p style="margin-top: 5px; font-size: 11px;">© 2025 TeNIME</p>
+            </div>
+        </div>
+    `;
+    
+    if (isDark) enableDarkMode();
+}
+
+// ==================== ANIME DETAIL ====================
+async function showAnimeDetail(animeId) {
+    showLoading();
     
     try {
-        const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        console.log('User data:', payload);
-        
-        if (!payload || !payload.email) {
-            throw new Error('Invalid Google response');
+        var data;
+        try {
+            data = await fetchAPI('/anime/' + animeId);
+        } catch (e) {
+            console.log('Gagal ambil detail, pakai data mock');
         }
         
-        currentUser = {
-            username: payload.name || payload.email.split('@')[0],
-            email: payload.email,
-            picture: payload.picture || null,
-            googleId: payload.sub,
-            premium: false,
-            loginMethod: 'google',
-            loginTime: new Date().toISOString()
+        var anime = data?.data || {
+            title: animeId.replace(/-/g, ' '),
+            poster: 'https://via.placeholder.com/300x400',
+            score: { value: '8.5' },
+            status: 'Ongoing',
+            type: 'TV',
+            duration: '24 min',
+            genreList: [
+                { title: 'Action' },
+                { title: 'Adventure' },
+                { title: 'Fantasy' }
+            ],
+            synopsis: { paragraphs: ['Sinopsis tidak tersedia.'] },
+            episodeList: []
         };
         
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        updateUserUI();
-        closeModal();
-        
-        alert(`Selamat datang, ${currentUser.username}!`);
-        
-    } catch (error) {
-        console.error('Google login error:', error);
-        alert('Gagal login dengan Google. Silakan coba lagi.');
-    }
-}
-
-function renderGoogleButton(containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    if (typeof google !== 'undefined' && google.accounts) {
-        google.accounts.id.renderButton(
-            container,
-            {
-                theme: 'outline',
-                size: 'large',
-                text: 'signin_with',
-                shape: 'rectangular',
-                logo_alignment: 'left',
-                width: '100%'
+        // Buat episode list dummy kalau kosong
+        if (!anime.episodeList || anime.episodeList.length === 0) {
+            anime.episodeList = [];
+            for (var i = 1; i <= 12; i++) {
+                anime.episodeList.push({
+                    title: i,
+                    episodeId: animeId + '-episode-' + i
+                });
             }
-        );
+        }
+        
+        var isFavorite = favorites.indexOf(animeId) > -1;
+        
+        var episodeHtml = '';
+        for (var j = 0; j < anime.episodeList.length; j++) {
+            var ep = anime.episodeList[j];
+            episodeHtml += '<div class="episode-item" onclick="showEpisode(\'' + ep.episodeId + '\')">Episode ' + ep.title + '</div>';
+        }
+        
+        var genreHtml = '';
+        if (anime.genreList) {
+            for (var g = 0; g < anime.genreList.length; g++) {
+                genreHtml += '<span class="genre-tag" onclick="searchAnime(\'' + anime.genreList[g].title + '\')">' + anime.genreList[g].title + '</span>';
+            }
+        }
+        
+        var html = `
+            <div class="detail-container">
+                <div class="detail-header">
+                    <img src="${anime.poster || ''}" class="detail-backdrop" alt="" onerror="this.style.display='none'">
+                    <img src="${anime.poster || 'https://via.placeholder.com/150x200'}" class="detail-poster" alt="${anime.title}" onerror="this.src='https://via.placeholder.com/150x200'">
+                </div>
+                
+                <div class="detail-info">
+                    <h1>${anime.title || anime.english || 'Unknown'}</h1>
+                    
+                    <div class="detail-meta">
+                        <span class="meta-item">⭐ ${anime.score?.value || anime.score || 'N/A'}</span>
+                        <span class="meta-item">${anime.status || 'Unknown'}</span>
+                        <span class="meta-item">${anime.type || 'Unknown'}</span>
+                        <span class="meta-item">${anime.duration || 'Unknown'}</span>
+                    </div>
+                    
+                    <div class="genre-tags">
+                        ${genreHtml}
+                    </div>
+                    
+                    <div class="detail-synopsis">
+                        ${(anime.synopsis?.paragraphs?.join(' ') || anime.synopsis || 'Tidak ada sinopsis.')}
+                    </div>
+                    
+                    <h3 style="margin: 20px 0 10px;">Daftar Episode</h3>
+                    <div class="episode-list">
+                        ${episodeHtml}
+                    </div>
+                    
+                    <button class="favorite-btn ${isFavorite ? 'in-favorite' : 'not-favorite'}" onclick="toggleFavorite('${animeId}')">
+                        <i class="fas fa-heart"></i> ${isFavorite ? 'Hapus dari Favorit' : 'Tambah ke Favorit'}
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        mainContent.innerHTML = html;
+    } catch (error) {
+        showError('Gagal memuat detail: ' + error.message);
     }
 }
 
-// ==================== AUTH ====================
+// ==================== SCHEDULE PAGE (SIMPLIFIED) ====================
+async function loadSchedule() {
+    showLoading();
+    
+    try {
+        var response = await fetch('https://www.sankavollerei.com/anime/samehadaku/schedule');
+        var data = await response.json();
+        
+        if (data.status === 'success' && data.data?.days) {
+            var daysData = data.data.days;
+            renderSchedule(daysData);
+        } else {
+            renderMockSchedule();
+        }
+    } catch (error) {
+        console.log('Using mock schedule data');
+        renderMockSchedule();
+    }
+}
+
+function renderSchedule(daysData) {
+    var dayMapping = {
+        'Monday': 'senin', 'Tuesday': 'selasa', 'Wednesday': 'rabu',
+        'Thursday': 'kamis', 'Friday': 'jumat', 'Saturday': 'sabtu', 'Sunday': 'minggu'
+    };
+    
+    var dayDisplay = {
+        'senin': 'Senin', 'selasa': 'Selasa', 'rabu': 'Rabu', 'kamis': 'Kamis',
+        'jumat': 'Jumat', 'sabtu': 'Sabtu', 'minggu': 'Minggu'
+    };
+    
+    var today = new Date().toLocaleDateString('id-ID', { weekday: 'long' }).toLowerCase();
+    var currentDay = localStorage.getItem('currentDay') || 'senin';
+    
+    var daysTabs = '';
+    var dayKeys = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
+    for (var i = 0; i < dayKeys.length; i++) {
+        var dayId = dayKeys[i];
+        daysTabs += '<div class="day-tab ' + (dayId === currentDay ? 'active' : '') + '" onclick="changeDay(\'' + dayId + '\')">' + dayDisplay[dayId] + '</div>';
+    }
+    
+    var currentDayData = null;
+    for (var j = 0; j < daysData.length; j++) {
+        var day = daysData[j];
+        var mappedDay = dayMapping[day.day];
+        if (mappedDay === currentDay) {
+            currentDayData = day;
+            break;
+        }
+    }
+    
+    var animeList = currentDayData?.animeList || [];
+    
+    var scheduleHTML = '';
+    for (var k = 0; k < animeList.length; k++) {
+        var anime = animeList[k];
+        scheduleHTML += `
+            <div class="schedule-item" onclick="showAnimeDetail('${anime.animeId}')">
+                <div class="schedule-time"><i class="fas fa-clock"></i> ${anime.estimation || '??:??'}</div>
+                <div class="schedule-content">
+                    <img src="${anime.poster || 'https://via.placeholder.com/60x80'}" alt="${anime.title}" class="schedule-poster" onerror="this.src='https://via.placeholder.com/60x80'">
+                    <div class="schedule-info">
+                        <h3 class="schedule-title">${anime.title}</h3>
+                        <div class="schedule-meta">
+                            <span class="badge-type">${anime.type || 'TV'}</span>
+                            <span class="badge-score">⭐ ${anime.score || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    var html = `
+        <div class="schedule-container">
+            <div class="schedule-header">
+                <h2>📅 Jadwal Rilis Anime</h2>
+                <p class="schedule-date">${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            </div>
+            <div class="day-tabs">${daysTabs}</div>
+            <div class="schedule-list">${scheduleHTML || '<p class="no-schedule">Tidak ada jadwal</p>'}</div>
+        </div>
+    `;
+    
+    mainContent.innerHTML = html;
+    localStorage.setItem('currentDay', currentDay);
+}
+
+function renderMockSchedule() {
+    var dayDisplay = {
+        'senin': 'Senin', 'selasa': 'Selasa', 'rabu': 'Rabu', 'kamis': 'Kamis',
+        'jumat': 'Jumat', 'sabtu': 'Sabtu', 'minggu': 'Minggu'
+    };
+    
+    var today = new Date().toLocaleDateString('id-ID', { weekday: 'long' }).toLowerCase();
+    var currentDay = localStorage.getItem('currentDay') || (dayDisplay[today] ? today : 'senin');
+    
+    var daysTabs = '';
+    var dayKeys = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu'];
+    for (var i = 0; i < dayKeys.length; i++) {
+        var dayId = dayKeys[i];
+        daysTabs += '<div class="day-tab ' + (dayId === currentDay ? 'active' : '') + '" onclick="changeDay(\'' + dayId + '\')">' + dayDisplay[dayId] + '</div>';
+    }
+    
+    var mockData = [
+        { time: '12:00', title: 'One Piece', type: 'TV', score: '8.73', animeId: 'one-piece' },
+        { time: '13:30', title: 'Jujutsu Kaisen', type: 'TV', score: '8.5', animeId: 'jujutsu-kaisen' },
+        { time: '15:00', title: 'Kimetsu no Yaiba', type: 'TV', score: '8.7', animeId: 'kimetsu' }
+    ];
+    
+    var scheduleHTML = '';
+    for (var j = 0; j < mockData.length; j++) {
+        var anime = mockData[j];
+        scheduleHTML += `
+            <div class="schedule-item" onclick="showAnimeDetail('${anime.animeId}')">
+                <div class="schedule-time"><i class="fas fa-clock"></i> ${anime.time}</div>
+                <div class="schedule-content">
+                    <img src="https://via.placeholder.com/60x80" class="schedule-poster">
+                    <div class="schedule-info">
+                        <h3 class="schedule-title">${anime.title}</h3>
+                        <div class="schedule-meta">
+                            <span class="badge-type">${anime.type}</span>
+                            <span class="badge-score">⭐ ${anime.score}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    var html = `
+        <div class="schedule-container">
+            <h2>📅 Jadwal Rilis Anime</h2>
+            <div class="day-tabs">${daysTabs}</div>
+            <div class="schedule-list">${scheduleHTML}</div>
+        </div>
+    `;
+    
+    mainContent.innerHTML = html;
+    localStorage.setItem('currentDay', currentDay);
+}
+
+function changeDay(day) {
+    localStorage.setItem('currentDay', day);
+    loadSchedule();
+}
+
+// ==================== UTILITIES ====================
+function showLoading() {
+    mainContent.innerHTML = `
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Memuat data...</p>
+        </div>
+    `;
+}
+
+function showError(message) {
+    mainContent.innerHTML = `
+        <div style="text-align: center; padding: 50px 20px; color: var(--error);">
+            <i class="fas fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px;"></i>
+            <p>${message}</p>
+            <button onclick="loadPage('${currentPage}')" style="margin-top: 15px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 25px; cursor: pointer;">
+                Coba Lagi
+            </button>
+        </div>
+    `;
+}
+
+function createAnimeCard(anime) {
+    var title = anime.title || 'Unknown';
+    var poster = anime.poster || 'https://via.placeholder.com/200x300';
+    var animeId = anime.animeId || anime.id || '';
+    var status = anime.status || '';
+    var score = anime.score || '';
+    var episodes = anime.episodes || '';
+    
+    var statusClass = '';
+    if (status.toLowerCase() === 'ongoing') statusClass = 'ongoing';
+    else if (status.toLowerCase() === 'completed') statusClass = 'completed';
+    
+    var scoreHtml = score ? '<span class="score">⭐ ' + score + '</span>' : '';
+    var episodesHtml = episodes ? '<span class="episodes">' + episodes + ' eps</span>' : '';
+    var statusHtml = status ? '<span class="status ' + statusClass + '">' + status + '</span>' : '';
+    
+    return '<div class="anime-card" onclick="showAnimeDetail(\'' + animeId + '\')">' +
+           '<img src="' + poster + '" alt="' + title + '" loading="lazy" onerror="this.src=\'https://via.placeholder.com/200x300\'">' +
+           '<div class="title">' + title + '</div>' +
+           scoreHtml + episodesHtml + statusHtml +
+           '</div>';
+}
+
+function updateBadges() {
+    if (historyBadge) historyBadge.textContent = watchHistory.length;
+    if (continueBadge) continueBadge.textContent = watchHistory.filter(function(h) { return h.progress < 95; }).length;
+    if (downloadBadge) downloadBadge.textContent = downloads.length;
+}
+
+function toggleSearch() {
+    if (searchBar) {
+        if (searchBar.style.display === 'none') {
+            searchBar.style.display = 'flex';
+            if (searchInput) searchInput.focus();
+        } else {
+            searchBar.style.display = 'none';
+            if (searchInput) searchInput.value = '';
+        }
+    }
+}
+
+function openMenu() {
+    if (sideMenu) sideMenu.classList.add('open');
+    if (overlay) overlay.classList.add('show');
+}
+
+function closeMenu() {
+    if (sideMenu) sideMenu.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+}
+
+function updateOnlineStatus() {
+    isOnline = navigator.onLine;
+    
+    if (offlineNotification) {
+        if (!isOnline) {
+            offlineNotification.style.display = 'flex';
+            offlineNotification.innerHTML = '<i class="fas fa-wifi-slash"></i><span>Kamu sedang offline. Menampilkan data tersimpan.</span>';
+        } else {
+            offlineNotification.style.display = 'none';
+        }
+    }
+}
+
+function toggleDarkMode() {
+    var darkModeCheckbox = document.getElementById('darkMode');
+    if (!darkModeCheckbox) return;
+    
+    var isDark = darkModeCheckbox.checked;
+    localStorage.setItem('darkMode', isDark);
+    
+    if (isDark) {
+        enableDarkMode();
+    } else {
+        disableDarkMode();
+    }
+}
+
+function enableDarkMode() {
+    document.documentElement.style.setProperty('--background', '#1a202c');
+    document.documentElement.style.setProperty('--surface', '#2d3748');
+    document.documentElement.style.setProperty('--text-primary', '#f7fafc');
+    document.documentElement.style.setProperty('--text-secondary', '#a0aec0');
+    document.documentElement.style.setProperty('--border', '#4a5568');
+}
+
+function disableDarkMode() {
+    document.documentElement.style.setProperty('--background', '#f8fafc');
+    document.documentElement.style.setProperty('--surface', '#ffffff');
+    document.documentElement.style.setProperty('--text-primary', '#2d3748');
+    document.documentElement.style.setProperty('--text-secondary', '#718096');
+    document.documentElement.style.setProperty('--border', '#e2e8f0');
+}
+
+function clearCache() {
+    if (confirm('Hapus semua cache?')) {
+        localStorage.removeItem('darkMode');
+        localStorage.removeItem('offlineData');
+        localStorage.removeItem('currentDay');
+        offlineData = {};
+        alert('Cache berhasil dihapus');
+        location.reload();
+    }
+}
+
+// ==================== AUTH (SIMPLIFIED) ====================
 function showLoginModal() {
     if (loginModal) {
         loginModal.classList.add('show');
-        
-        setTimeout(() => {
-            renderGoogleButton('googleButton');
-        }, 100);
     }
 }
 
@@ -1641,16 +1373,16 @@ function closeModal() {
 }
 
 function switchAuthTab(tab) {
-    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('form').forEach(f => f.style.display = 'none');
+    document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('form').forEach(function(f) { f.style.display = 'none'; });
     
     if (tab === 'login') {
         document.querySelector('[onclick="switchAuthTab(\'login\')"]').classList.add('active');
-        const loginForm = document.getElementById('loginForm');
+        var loginForm = document.getElementById('loginForm');
         if (loginForm) loginForm.style.display = 'block';
     } else {
         document.querySelector('[onclick="switchAuthTab(\'register\')"]').classList.add('active');
-        const registerForm = document.getElementById('registerForm');
+        var registerForm = document.getElementById('registerForm');
         if (registerForm) registerForm.style.display = 'block';
     }
 }
@@ -1658,8 +1390,8 @@ function switchAuthTab(tab) {
 function handleLogin(e) {
     e.preventDefault();
     
-    const username = document.getElementById('loginUsername')?.value;
-    const password = document.getElementById('loginPassword')?.value;
+    var username = document.getElementById('loginUsername')?.value;
+    var password = document.getElementById('loginPassword')?.value;
     
     if (!username || !password) {
         alert('Username dan password harus diisi');
@@ -1682,10 +1414,10 @@ function handleLogin(e) {
 function handleRegister(e) {
     e.preventDefault();
     
-    const username = document.getElementById('regUsername')?.value;
-    const email = document.getElementById('regEmail')?.value;
-    const password = document.getElementById('regPassword')?.value;
-    const confirm = document.getElementById('regConfirm')?.value;
+    var username = document.getElementById('regUsername')?.value;
+    var email = document.getElementById('regEmail')?.value;
+    var password = document.getElementById('regPassword')?.value;
+    var confirm = document.getElementById('regConfirm')?.value;
     
     if (!username || !email || !password || !confirm) {
         alert('Semua field harus diisi');
@@ -1694,11 +1426,6 @@ function handleRegister(e) {
     
     if (password !== confirm) {
         alert('Password tidak cocok');
-        return;
-    }
-    
-    if (password.length < 6) {
-        alert('Password minimal 6 karakter');
         return;
     }
     
@@ -1727,294 +1454,56 @@ function updateUserUI() {
         userName.textContent = currentUser?.username || 'Guest';
     }
     if (userStatus) {
+        userStatus.textContent = currentUser?.premium ? 'Premium User' : 'Free User';
         if (currentUser?.premium) {
-            const expiry = currentUser.premiumExpiry ? new Date(currentUser.premiumExpiry) : null;
-            const daysLeft = expiry ? Math.ceil((expiry - new Date()) / (1000 * 60 * 60 * 24)) : 0;
-            
-            userStatus.textContent = `Premium ${currentUser.premiumPlan || ''} • ${daysLeft} hari lagi`;
             userStatus.classList.add('premium');
         } else {
-            userStatus.textContent = 'Free User';
             userStatus.classList.remove('premium');
         }
     }
 }
 
-// ==================== PREMIUM ====================
+// ==================== PREMIUM (SIMPLIFIED) ====================
 function showPremiumModal() {
-    if (premiumModal) {
-        premiumModal.classList.add('show');
-        document.getElementById('selectedPlan').textContent = '-';
-        document.getElementById('totalPrice').textContent = 'Rp 0';
-    }
+    alert('Fitur premium akan segera hadir!');
 }
 
-function closePremiumModal() {
-    if (premiumModal) {
-        premiumModal.classList.remove('show');
-        const paymentSection = document.getElementById('paymentSection');
-        if (paymentSection) {
-            paymentSection.style.display = 'none';
-        }
-    }
-}
+function closePremiumModal() {}
 
 function selectPlan(plan) {
-    selectedPlan = plan;
-    
-    let price = 0;
-    switch(plan) {
-        case 'Mingguan': price = 15000; break;
-        case 'Bulanan': price = 45000; break;
-        case '3 Bulan': price = 120000; break;
-        case 'Tahunan': price = 350000; break;
-        default: price = 0;
-    }
-    
-    document.getElementById('selectedPlan').textContent = plan;
-    document.getElementById('totalPrice').textContent = `Rp ${price.toLocaleString()}`;
-    document.getElementById('paymentSection').style.display = 'block';
-    
-    document.querySelectorAll('.plan-card').forEach(card => {
-        card.classList.remove('selected');
-    });
-    
-    if (event && event.target) {
-        const card = event.target.closest('.plan-card');
-        if (card) card.classList.add('selected');
-    }
+    alert('Pilih paket: ' + plan);
 }
 
-function selectPayment(method) {
-    selectedPayment = method;
-    document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
-    if (event && event.target) {
-        const method = event.target.closest('.payment-method');
-        if (method) method.classList.add('active');
-    }
-}
+function selectPayment(method) {}
 
 function confirmPayment() {
-    if (!selectedPlan) {
-        alert('Pilih paket premium terlebih dahulu');
-        return;
-    }
-    
-    if (!currentUser) {
-        alert('Silakan login terlebih dahulu');
-        closePremiumModal();
-        showLoginModal();
-        return;
-    }
-    
-    let amount = 0;
-    switch(selectedPlan) {
-        case 'Mingguan': amount = 15000; break;
-        case 'Bulanan': amount = 45000; break;
-        case '3 Bulan': amount = 120000; break;
-        case 'Tahunan': amount = 350000; break;
-    }
-    
-    const message = `Saya mau bayar premium TeNIME paket ${selectedPlan} - Username: ${currentUser.username}`;
-    
-    const sociabuzzLink = `https://sociabuzz.com/dtest/support?amount=${amount}&message=${encodeURIComponent(message)}`;
-    
-    if (confirm(`Anda akan membayar Rp ${amount.toLocaleString()} untuk paket ${selectedPlan}\n\nLanjutkan ke halaman pembayaran SociaBuzz?`)) {
-        window.open(sociabuzzLink, '_blank');
-        closePremiumModal();
-        
-        alert(`✅ Terima kasih!\n\nSetelah pembayaran selesai, Anda akan otomatis diarahkan kembali ke aplikasi dan premium langsung aktif.`);
-    }
+    alert('Pembayaran akan diproses');
 }
 
-function checkPremiumActivation() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('premium') === 'success') {
-        const username = urlParams.get('username');
-        const plan = urlParams.get('plan');
-        
-        if (currentUser && currentUser.username === username) {
-            activatePremium(username, plan);
-        } else {
-            localStorage.setItem('pendingPremiumActivation', JSON.stringify({
-                username: username,
-                plan: plan,
-                timestamp: Date.now()
-            }));
-            alert(`Pembayaran sukses! Silakan login dengan username "${username}" untuk mengaktifkan premium.`);
-        }
-    }
-    
-    const pending = JSON.parse(localStorage.getItem('pendingPremiumActivation'));
-    if (pending && currentUser && currentUser.username === pending.username) {
-        activatePremium(pending.username, pending.plan);
-        localStorage.removeItem('pendingPremiumActivation');
-    }
+function checkPremiumActivation() {}
+
+function downloadAnime(animeId) {
+    alert('Fitur download batch akan segera tersedia');
 }
 
-function activatePremium(username, plan) {
-    if (currentUser && currentUser.username === username) {
-        const expiryDate = new Date();
-        if (plan === "Mingguan") expiryDate.setDate(expiryDate.getDate() + 7);
-        else if (plan === "Bulanan") expiryDate.setMonth(expiryDate.getMonth() + 1);
-        else if (plan === "3 Bulan") expiryDate.setMonth(expiryDate.getMonth() + 3);
-        else if (plan === "Tahunan") expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-        
-        currentUser.premium = true;
-        currentUser.premiumPlan = plan;
-        currentUser.premiumExpiry = expiryDate.toISOString();
-        
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        updateUserUI();
-        
-        alert(`🎉 Selamat! Akun ${username} sekarang PREMIUM ${plan}!\nAktif hingga: ${expiryDate.toLocaleDateString('id-ID')}`);
-        
-        window.history.replaceState({}, document.title, '/');
-        location.reload();
-    }
+function downloadEpisode(episodeId) {
+    alert('Fitur download episode akan segera tersedia');
 }
 
-// ==================== UTILITIES ====================
-function showLoading() {
-    mainContent.innerHTML = `
-        <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>Memuat data...</p>
-        </div>
-    `;
+function deleteDownload(fileId) {
+    downloads = downloads.filter(function(d) { return d.fileId !== fileId; });
+    localStorage.setItem('downloads', JSON.stringify(downloads));
+    loadDownloads();
+    updateBadges();
 }
 
-function showError(message) {
-    mainContent.innerHTML = `
-        <div style="text-align: center; padding: 50px 20px; color: var(--error);">
-            <i class="fas fa-exclamation-circle" style="font-size: 48px; margin-bottom: 15px;"></i>
-            <p>${message}</p>
-            <button onclick="loadPage('${currentPage}')" style="margin-top: 15px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 25px; cursor: pointer;">
-                Coba Lagi
-            </button>
-        </div>
-    `;
+function playDownload(fileId) {
+    alert('Fitur putar download akan segera tersedia');
 }
 
-function createAnimeCard(anime) {
-    const title = anime.title || 'Unknown';
-    const poster = anime.poster || 'https://via.placeholder.com/200x300';
-    const animeId = anime.animeId || anime.id || '';
-    const status = anime.status || '';
-    const score = anime.score || '';
-    const episodes = anime.episodes || '';
-    
-    let statusClass = '';
-    if (status.toLowerCase() === 'ongoing') statusClass = 'ongoing';
-    else if (status.toLowerCase() === 'completed') statusClass = 'completed';
-    
-    return `
-        <div class="anime-card" onclick="showAnimeDetail('${animeId}')">
-            <img src="${poster}" alt="${title}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300'">
-            <div class="title">${title}</div>
-            ${score ? `<span class="score">⭐ ${score}</span>` : ''}
-            ${episodes ? `<span class="episodes">${episodes} eps</span>` : ''}
-            ${status ? `<span class="status ${statusClass}">${status}</span>` : ''}
-        </div>
-    `;
-}
-
-function updateBadges() {
-    if (historyBadge) historyBadge.textContent = watchHistory.length;
-    if (continueBadge) continueBadge.textContent = watchHistory.filter(h => h.progress < 95).length;
-    if (downloadBadge) downloadBadge.textContent = downloads.length;
-}
-
-function toggleSearch() {
-    if (searchBar) {
-        searchBar.style.display = searchBar.style.display === 'none' ? 'flex' : 'none';
-        if (searchBar.style.display === 'flex' && searchInput) {
-            searchInput.focus();
-        } else if (searchInput) {
-            searchInput.value = '';
-        }
-    }
-}
-
-function openMenu() {
-    if (sideMenu) sideMenu.classList.add('open');
-    if (overlay) overlay.classList.add('show');
-}
-
-function closeMenu() {
-    if (sideMenu) sideMenu.classList.remove('open');
-    if (overlay) overlay.classList.remove('show');
-}
-
-function updateOnlineStatus() {
-    isOnline = navigator.onLine;
-    
-    if (offlineNotification) {
-        if (!isOnline) {
-            offlineNotification.style.display = 'flex';
-            offlineNotification.innerHTML = `
-                <i class="fas fa-wifi-slash"></i>
-                <span>Kamu sedang offline. Menampilkan data tersimpan.</span>
-            `;
-        } else {
-            offlineNotification.style.display = 'none';
-        }
-    }
-}
-
-function toggleDarkMode() {
-    const darkModeCheckbox = document.getElementById('darkMode');
-    if (!darkModeCheckbox) return;
-    
-    const isDark = darkModeCheckbox.checked;
-    localStorage.setItem('darkMode', isDark);
-    
-    if (isDark) {
-        enableDarkMode();
-    } else {
-        disableDarkMode();
-    }
-}
-
-function enableDarkMode() {
-    document.documentElement.style.setProperty('--background', '#1a202c');
-    document.documentElement.style.setProperty('--surface', '#2d3748');
-    document.documentElement.style.setProperty('--text-primary', '#f7fafc');
-    document.documentElement.style.setProperty('--text-secondary', '#a0aec0');
-    document.documentElement.style.setProperty('--border', '#4a5568');
-}
-
-function disableDarkMode() {
-    document.documentElement.style.setProperty('--background', '#f8fafc');
-    document.documentElement.style.setProperty('--surface', '#ffffff');
-    document.documentElement.style.setProperty('--text-primary', '#2d3748');
-    document.documentElement.style.setProperty('--text-secondary', '#718096');
-    document.documentElement.style.setProperty('--border', '#e2e8f0');
-}
-
-function toggleNotifications() {
-    const notificationsCheckbox = document.getElementById('notifications');
-    if (!notificationsCheckbox) return;
-    
-    const isEnabled = notificationsCheckbox.checked;
-    localStorage.setItem('notifications', isEnabled);
-    
-    if (isEnabled && Notification.permission !== 'granted') {
-        Notification.requestPermission();
-    }
-}
-
-function clearCache() {
-    if (confirm('Hapus semua cache? Favorit dan riwayat akan tetap tersimpan.')) {
-        localStorage.removeItem('darkMode');
-        localStorage.removeItem('notifications');
-        localStorage.removeItem('offlineData');
-        localStorage.removeItem('currentDay');
-        localStorage.removeItem('pendingPremiumActivation');
-        offlineData = {};
-        alert('Cache berhasil dihapus. Halaman akan dimuat ulang.');
-        location.reload();
-    }
+// ==================== GOOGLE LOGIN (SIMPLIFIED) ====================
+function initGoogleLogin() {
+    // Google login akan diimplementasikan nanti
 }
 
 // ==================== GLOBAL FUNCTIONS ====================
@@ -2030,7 +1519,6 @@ window.deleteDownload = deleteDownload;
 window.playDownload = playDownload;
 window.changeDay = changeDay;
 window.toggleDarkMode = toggleDarkMode;
-window.toggleNotifications = toggleNotifications;
 window.clearCache = clearCache;
 window.showLoginModal = showLoginModal;
 window.closeModal = closeModal;
@@ -2047,7 +1535,7 @@ window.downloadAnime = downloadAnime;
 window.downloadEpisode = downloadEpisode;
 window.loadSchedule = loadSchedule;
 
-setInterval(() => {
+setInterval(function() {
     if (currentPage === 'schedule') {
         loadSchedule();
     }
