@@ -1187,6 +1187,21 @@ class PremiumVideoPlayer {
         this.servers = this.organizeServers();
         this.isFullscreen = false;
         this.isPiP = false;
+        this.video = null;
+        this.playPauseBtn = null;
+        this.progressFill = null;
+        this.progressBuffer = null;
+        this.timeDisplay = null;
+        this.volumeSlider = null;
+        this.muteBtn = null;
+        this.fullscreenBtn = null;
+        this.pipBtn = null;
+        this.qualityBadge = null;
+        this.videoLoading = null;
+        this.videoError = null;
+        this.currentResolutionSpan = null;
+        this.progressContainer = null;
+        this.progressBar = null;
         this.init();
     }
     
@@ -1231,7 +1246,7 @@ class PremiumVideoPlayer {
                 <div class="video-error" id="videoError">
                     <i class="fas fa-exclamation-circle" style="font-size: 40px; margin-bottom: 10px;"></i>
                     <p>Gagal memuat video</p>
-                    <button class="retry-btn" onclick="player.retry()">Coba Lagi</button>
+                    <button class="retry-btn" onclick="window.player.retry()">Coba Lagi</button>
                 </div>
                 
                 <div class="quality-badge" id="qualityBadge">
@@ -1300,7 +1315,7 @@ class PremiumVideoPlayer {
             return `
                 <div class="resolution-item ${res === 'Auto' ? 'active' : ''} ${!hasServer && res !== 'Auto' ? 'disabled' : ''}" 
                      data-resolution="${resKey}"
-                     onclick="${hasServer || res === 'Auto' ? `player.changeResolution('${resKey}')` : ''}">
+                     onclick="window.player.changeResolution('${resKey}')">
                     <span>${res}</span>
                     ${hasServer || res === 'Auto' ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times" style="color: #f56565;"></i>'}
                 </div>
@@ -1685,7 +1700,7 @@ class PremiumVideoPlayer {
     }
 }
 
-// Global player instance
+// Global player instance - PASTIKAN PAKAI let BUKAN const
 let player;
 
 function initVideoPlayer(containerId, episodeData, episodeId) {
@@ -2436,3 +2451,4 @@ setInterval(() => {
         loadSchedule();
     }
 }, 60000);
+
