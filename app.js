@@ -33,13 +33,6 @@ const historyBadge = document.getElementById('historyBadge');
 const continueBadge = document.getElementById('continueBadge');
 const downloadBadge = document.getElementById('downloadBadge');
 
-// ==================== DETEKSI APK ====================
-const isInApp = navigator.userAgent.includes('wv') || 
-                navigator.userAgent.includes('Android') && 
-                document.referrer.includes('app');
-
-console.log('Running in APK:', isInApp);
-
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
@@ -1142,556 +1135,7 @@ async function showAnimeDetail(animeId) {
     }
 }
 
-// ==================== VIDEO PLAYER PREMIUM CLASS (FIX UNTUK APK) ====================
-class PremiumVideoPlayer {
-    constructor(containerId, episodeData, episodeId) {
-        this.container = document.getElementById(containerId);
-        this.episodeData = episodeData;
-        this.episodeId = episodeId;
-        this.currentResolution = 'auto';
-        this.currentServer = null;
-        this.servers = this.organizeServers();
-        this.isFullscreen = false;
-        this.isPiP = false;
-        this.video = null;
-        this.playPauseBtn = null;
-        this.progressFill = null;
-        this.progressBuffer = null;
-        this.timeDisplay = null;
-        this.volumeSlider = null;
-        this.muteBtn = null;
-        this.fullscreenBtn = null;
-        this.pipBtn = null;
-        this.qualityBadge = null;
-        this.videoLoading = null;
-        this.videoError = null;
-        this.currentResolutionSpan = null;
-        this.progressContainer = null;
-        this.progressBar = null;
-        this.init();
-    }
-    
-    organizeServers() {
-        const servers = {
-            '4k': [],
-            '1080p': [],
-            '720p': [],
-            '480p': [],
-            '360p': [],
-            'unknown': []
-        };
-        
-        if (this.episodeData.server?.qualities) {
-            this.episodeData.server.qualities.forEach(quality => {
-                const qualityName = quality.title.toLowerCase();
-                if (quality.serverList && quality.serverList.length > 0) {
-                    if (qualityName.includes('4k')) servers['4k'].push(...quality.serverList);
-                    else if (qualityName.includes('1080')) servers['1080p'].push(...quality.serverList);
-                    else if (qualityName.includes('720')) servers['720p'].push(...quality.serverList);
-                    else if (qualityName.includes('480')) servers['480p'].push(...quality.serverList);
-                    else if (qualityName.includes('360')) servers['360p'].push(...quality.serverList);
-                    else servers['unknown'].push(...quality.serverList);
-                }
-            });
-        }
-        
-        return servers;
-    }
-    
-    render() {
-        const html = `
-            <div class="video-player-premium" id="premiumPlayer">
-                <video id="mainVideo" preload="auto" playsinline>
-                    <source src="" type="video/mp4">
-                </video>
-                
-                <div class="video-loading" id="videoLoading">
-                    <div class="spinner"></div>
-                </div>
-                
-                <div class="video-error" id="videoError">
-                    <i class="fas fa-exclamation-circle" style="font-size: 40px; margin-bottom: 10px;"></i>
-                    <p>Gagal memuat video</p>
-                    <button class="retry-btn" onclick="window.playerRef.retry()">Coba Lagi</button>
-                </div>
-                
-                <div class="quality-badge" id="qualityBadge">
-                    Auto
-                </div>
-                
-                <div class="video-controls" id="videoControls">
-                    <div class="progress-container" id="progressContainer">
-                        <div class="progress-bar" id="progressBar">
-                            <div class="progress-fill" id="progressFill"></div>
-                            <div class="progress-buffer" id="progressBuffer"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="controls-row">
-                        <div class="controls-left">
-                            <button class="control-btn" id="playPauseBtn">
-                                <i class="fas fa-play"></i>
-                            </button>
-                            
-                            <div class="volume-control">
-                                <button class="control-btn" id="muteBtn">
-                                    <i class="fas fa-volume-up"></i>
-                                </button>
-                                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.1" value="1">
-                            </div>
-                            
-                            <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
-                        </div>
-                        
-                        <div class="controls-right">
-                            <button class="control-btn" id="pipBtn">
-                                <i class="fas fa-closed-captioning"></i>
-                            </button>
-                            
-                            <div class="resolution-selector">
-                                <button class="resolution-btn" id="resolutionBtn">
-                                    <i class="fas fa-cog"></i>
-                                    <span id="currentResolution">Auto</span>
-                                </button>
-                                <div class="resolution-menu" id="resolutionMenu">
-                                    ${this.renderResolutionOptions()}
-                                </div>
-                            </div>
-                            
-                            <button class="control-btn" id="fullscreenBtn">
-                                <i class="fas fa-expand"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        this.container.innerHTML = html;
-        this.initElements();
-        this.initEvents();
-        this.loadDefaultServer();
-        
-        // Referensi global yang stabil untuk APK
-        window.playerRef = this;
-    }
-    
-    renderResolutionOptions() {
-        const resolutions = ['Auto', '4K', '1080p', '720p', '480p', '360p'];
-        return resolutions.map(res => {
-            const resKey = res.toLowerCase().replace('k', 'k');
-            const hasServer = res === 'Auto' || this.servers[resKey]?.length > 0;
-            return `
-                <div class="resolution-item ${res === 'Auto' ? 'active' : ''} ${!hasServer && res !== 'Auto' ? 'disabled' : ''}" 
-                     data-resolution="${resKey}"
-                     onclick="window.playerRef.changeResolution('${resKey}')">
-                    <span>${res}</span>
-                    ${hasServer || res === 'Auto' ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times" style="color: #f56565;"></i>'}
-                </div>
-            `;
-        }).join('');
-    }
-    
-    initElements() {
-        this.video = document.getElementById('mainVideo');
-        this.playPauseBtn = document.getElementById('playPauseBtn');
-        this.progressFill = document.getElementById('progressFill');
-        this.progressBuffer = document.getElementById('progressBuffer');
-        this.timeDisplay = document.getElementById('timeDisplay');
-        this.volumeSlider = document.getElementById('volumeSlider');
-        this.muteBtn = document.getElementById('muteBtn');
-        this.fullscreenBtn = document.getElementById('fullscreenBtn');
-        this.pipBtn = document.getElementById('pipBtn');
-        this.qualityBadge = document.getElementById('qualityBadge');
-        this.videoLoading = document.getElementById('videoLoading');
-        this.videoError = document.getElementById('videoError');
-        this.currentResolutionSpan = document.getElementById('currentResolution');
-        this.progressContainer = document.getElementById('progressContainer');
-        this.progressBar = document.getElementById('progressBar');
-    }
-    
-    initEvents() {
-        this.playPauseBtn.addEventListener('click', () => this.togglePlay());
-        this.video.addEventListener('click', () => this.togglePlay());
-        
-        this.video.addEventListener('timeupdate', () => this.updateProgress());
-        this.video.addEventListener('progress', () => this.updateBuffer());
-        this.progressContainer.addEventListener('click', (e) => this.seek(e));
-        
-        this.volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value));
-        this.muteBtn.addEventListener('click', () => this.toggleMute());
-        
-        this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
-        document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
-        
-        if ('pictureInPictureEnabled' in document) {
-            this.pipBtn.addEventListener('click', () => this.togglePiP());
-            this.video.addEventListener('enterpictureinpicture', () => this.handlePiPEnter());
-            this.video.addEventListener('leavepictureinpicture', () => this.handlePiPLeave());
-        } else {
-            this.pipBtn.style.display = 'none';
-        }
-        
-        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
-        this.video.addEventListener('error', (e) => this.handleVideoError(e));
-        
-        window.addEventListener('orientationchange', () => this.handleOrientationChange());
-        this.handleOrientationChange();
-    }
-    
-    async loadDefaultServer() {
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        let recommendedRes = '720p';
-        
-        if (connection) {
-            const speed = connection.downlink;
-            if (speed > 5) recommendedRes = '1080p';
-            else if (speed > 2) recommendedRes = '720p';
-            else if (speed > 1) recommendedRes = '480p';
-            else recommendedRes = '360p';
-        }
-        
-        const resolutions = ['4k', '1080p', '720p', '480p', '360p'];
-        let loaded = false;
-        
-        if (this.servers[recommendedRes]?.length > 0) {
-            this.currentResolution = recommendedRes;
-            this.currentServer = this.servers[recommendedRes][0];
-            await this.loadServer(this.currentServer.serverId);
-            loaded = true;
-        }
-        
-        if (!loaded) {
-            for (const res of resolutions) {
-                if (this.servers[res]?.length > 0) {
-                    this.currentResolution = res;
-                    this.currentServer = this.servers[res][0];
-                    await this.loadServer(this.currentServer.serverId);
-                    loaded = true;
-                    break;
-                }
-            }
-        }
-        
-        if (!loaded && this.servers['unknown']?.length > 0) {
-            this.currentResolution = 'unknown';
-            this.currentServer = this.servers['unknown'][0];
-            await this.loadServer(this.currentServer.serverId);
-        }
-        
-        this.updateQualityBadge();
-    }
-    
-    async loadServer(serverId) {
-        this.showLoading();
-        this.hideError();
-        
-        try {
-            const response = await fetch(`https://www.sankavollerei.com/anime/samehadaku/server/${serverId}`);
-            const data = await response.json();
-            
-            let videoUrl = data.data?.url || data.url || data.video || data.stream || data.source || data.link;
-            
-            if (!videoUrl) throw new Error('URL video tidak ditemukan');
-            
-            const oldIframe = this.container.querySelector('iframe');
-            if (oldIframe) oldIframe.remove();
-            
-            if (videoUrl.includes('blogger.com')) {
-                this.video.style.display = 'none';
-                const iframe = document.createElement('iframe');
-                iframe.src = videoUrl;
-                iframe.style.width = '100%';
-                iframe.style.height = '100%';
-                iframe.style.border = 'none';
-                iframe.allowFullscreen = true;
-                this.video.parentNode.insertBefore(iframe, this.video);
-            } else {
-                this.video.style.display = 'block';
-                this.video.src = videoUrl;
-                this.video.load();
-                await this.video.play();
-            }
-            
-            this.hideLoading();
-            
-        } catch (error) {
-            console.error('Server error:', error);
-            this.hideLoading();
-            this.showError();
-        }
-    }
-    
-    async changeResolution(resolution) {
-        if (resolution === 'auto') {
-            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            if (connection) {
-                const speed = connection.downlink;
-                if (speed > 5) resolution = '1080p';
-                else if (speed > 2) resolution = '720p';
-                else if (speed > 1) resolution = '480p';
-                else resolution = '360p';
-            } else {
-                resolution = '720p';
-            }
-        }
-        
-        const servers = this.servers[resolution];
-        if (!servers || servers.length === 0) {
-            alert(`Tidak ada server untuk resolusi ${resolution}`);
-            return;
-        }
-        
-        this.currentResolution = resolution;
-        this.currentResolutionSpan.textContent = resolution.toUpperCase();
-        this.updateQualityBadge();
-        
-        document.querySelectorAll('.resolution-item').forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.resolution === resolution) {
-                item.classList.add('active');
-            }
-        });
-        
-        await this.loadServer(servers[0].serverId);
-    }
-    
-    togglePlay() {
-        if (this.video.paused) {
-            this.video.play();
-            this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        } else {
-            this.video.pause();
-            this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-        }
-    }
-    
-    updateProgress() {
-        if (!this.video.duration) return;
-        const percent = (this.video.currentTime / this.video.duration) * 100;
-        this.progressFill.style.width = `${percent}%`;
-        
-        const current = this.formatTime(this.video.currentTime);
-        const duration = this.formatTime(this.video.duration);
-        this.timeDisplay.textContent = `${current} / ${duration}`;
-        
-        updateHistoryProgress(this.episodeId, percent);
-    }
-    
-    updateBuffer() {
-        if (this.video.buffered.length > 0) {
-            const bufferedEnd = this.video.buffered.end(this.video.buffered.length - 1);
-            const percent = (bufferedEnd / this.video.duration) * 100;
-            this.progressBuffer.style.width = `${percent}%`;
-        }
-    }
-    
-    seek(e) {
-        const rect = this.progressBar.getBoundingClientRect();
-        const pos = (e.clientX - rect.left) / rect.width;
-        this.video.currentTime = pos * this.video.duration;
-    }
-    
-    setVolume(value) {
-        this.video.volume = value;
-        this.volumeSlider.value = value;
-        this.updateMuteIcon();
-    }
-    
-    toggleMute() {
-        this.video.muted = !this.video.muted;
-        this.updateMuteIcon();
-    }
-    
-    updateMuteIcon() {
-        if (this.video.muted || this.video.volume === 0) {
-            this.muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
-        } else if (this.video.volume < 0.5) {
-            this.muteBtn.innerHTML = '<i class="fas fa-volume-down"></i>';
-        } else {
-            this.muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-        }
-    }
-    
-    async toggleFullscreen() {
-        if (!this.isFullscreen) {
-            if (this.video.requestFullscreen) {
-                await this.video.requestFullscreen();
-            } else if (this.video.webkitRequestFullscreen) {
-                await this.video.webkitRequestFullscreen();
-            }
-        } else {
-            if (document.exitFullscreen) {
-                await document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                await document.webkitExitFullscreen();
-            }
-        }
-    }
-    
-    handleFullscreenChange() {
-        this.isFullscreen = !!document.fullscreenElement;
-        this.fullscreenBtn.innerHTML = this.isFullscreen ? 
-            '<i class="fas fa-compress"></i>' : 
-            '<i class="fas fa-expand"></i>';
-    }
-    
-    async togglePiP() {
-        if (!this.isPiP) {
-            try {
-                await this.video.requestPictureInPicture();
-            } catch (error) {
-                console.log('PiP not supported');
-            }
-        } else {
-            try {
-                await document.exitPictureInPicture();
-            } catch (error) {
-                console.log('Exit PiP failed');
-            }
-        }
-    }
-    
-    handlePiPEnter() {
-        this.isPiP = true;
-        this.pipBtn.innerHTML = '<i class="fas fa-compress"></i>';
-    }
-    
-    handlePiPLeave() {
-        this.isPiP = false;
-        this.pipBtn.innerHTML = '<i class="fas fa-closed-captioning"></i>';
-    }
-    
-    handleKeyboard(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-        
-        switch(e.key.toLowerCase()) {
-            case ' ':
-            case 'k':
-                e.preventDefault();
-                this.togglePlay();
-                break;
-            case 'f':
-                e.preventDefault();
-                this.toggleFullscreen();
-                break;
-            case 'm':
-                e.preventDefault();
-                this.toggleMute();
-                break;
-            case 'arrowright':
-                e.preventDefault();
-                this.video.currentTime += 10;
-                break;
-            case 'arrowleft':
-                e.preventDefault();
-                this.video.currentTime -= 10;
-                break;
-            case 'arrowup':
-                e.preventDefault();
-                this.setVolume(Math.min(1, this.video.volume + 0.1));
-                break;
-            case 'arrowdown':
-                e.preventDefault();
-                this.setVolume(Math.max(0, this.video.volume - 0.1));
-                break;
-        }
-    }
-    
-    handleVideoError(e) {
-        console.error('Video error:', e);
-        this.showError();
-    }
-    
-    handleOrientationChange() {
-        if (window.matchMedia("(orientation: landscape)").matches && window.innerWidth <= 768) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-    }
-    
-    retry() {
-        this.hideError();
-        this.loadDefaultServer();
-    }
-    
-    formatTime(seconds) {
-        if (isNaN(seconds)) return '00:00';
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = Math.floor(seconds % 60);
-        
-        if (h > 0) {
-            return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
-        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
-    
-    showLoading() {
-        if (this.videoLoading) this.videoLoading.classList.add('show');
-    }
-    
-    hideLoading() {
-        if (this.videoLoading) this.videoLoading.classList.remove('show');
-    }
-    
-    showError() {
-        if (this.videoError) this.videoError.classList.add('show');
-    }
-    
-    hideError() {
-        if (this.videoError) this.videoError.classList.remove('show');
-    }
-    
-    updateQualityBadge() {
-        if (this.qualityBadge) {
-            this.qualityBadge.textContent = this.currentResolution.toUpperCase();
-        }
-    }
-}
-
-// Global player instance - PASTIKAN PAKAI let BUKAN const
-let player;
-
-function initVideoPlayer(containerId, episodeData, episodeId) {
-    player = new PremiumVideoPlayer(containerId, episodeData, episodeId);
-    player.render();
-    window.player = player;
-}
-
-// ==================== FALLBACK VIDEO PLAYER UNTUK APK ====================
-function fallbackVideoPlayer(episodeId, episode) {
-    const videoUrl = episode.defaultStreamingUrl || '';
-    
-    let html = `
-        <div class="video-container">
-            <div class="video-player">
-                ${videoUrl.includes('blogger.com') ? 
-                    `<iframe src="${videoUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%;"></iframe>` :
-                    `<video id="fallbackVideo" controls autoplay playsinline style="width:100%; height:100%;">
-                        <source src="${videoUrl}" type="video/mp4">
-                    </video>`
-                }
-            </div>
-            <div class="video-info">
-                <h2 class="video-title">${episode.title || 'Episode ' + episodeId}</h2>
-                <div class="video-nav">
-                    <button class="nav-btn" onclick="showAnimeDetail('${episode.animeId || episodeId.split('-')[0]}')">
-                        <i class="fas fa-info-circle"></i> Kembali ke Detail
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const container = document.getElementById('premiumPlayerContainer');
-    if (container) {
-        container.innerHTML = html;
-    }
-}
-
-// ==================== EPISODE PLAYER DENGAN PREMIUM PLAYER ====================
+// ==================== EPISODE PLAYER (VERSION SUPER SIMPLE UNTUK APK) ====================
 async function showEpisode(episodeId) {
     showLoading();
     
@@ -1702,6 +1146,7 @@ async function showEpisode(episodeId) {
         
         console.log('Episode data:', episode);
         
+        // Simpan ke history
         addToHistory({
             animeId: episode.animeId || episodeId.split('-')[0],
             episodeId: episodeId,
@@ -1712,9 +1157,30 @@ async function showEpisode(episodeId) {
             timestamp: new Date().toLocaleString()
         });
         
-        const html = `
-            <div class="video-wrapper">
-                <div id="premiumPlayerContainer"></div>
+        // Ambil semua server yang tersedia
+        const serverList = [];
+        if (episode.server?.qualities) {
+            episode.server.qualities.forEach(quality => {
+                if (quality.serverList) {
+                    quality.serverList.forEach(server => {
+                        serverList.push({
+                            name: `${quality.title} - ${server.title}`,
+                            id: server.serverId
+                        });
+                    });
+                }
+            });
+        }
+        
+        // Buat HTML dengan video player super simple
+        let html = `
+            <div class="video-container">
+                <div class="video-player" id="videoPlayerContainer" style="background: #000; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                    <div style="text-align: center; color: white;">
+                        <i class="fas fa-film" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <p>Pilih server untuk memutar video</p>
+                    </div>
+                </div>
                 
                 <div class="video-info">
                     <h2 class="video-title">${episode.title || 'Episode ' + episodeId}</h2>
@@ -1731,6 +1197,27 @@ async function showEpisode(episodeId) {
                             `<button class="nav-btn" onclick="showEpisode('${episode.nextEpisode.episodeId}')">
                                 Next <i class="fas fa-chevron-right"></i>
                             </button>` : ''}
+                    </div>
+                    
+                    <h3 style="margin-top: 20px;">📡 Pilih Server Streaming</h3>
+                    <div class="server-list" style="margin-bottom: 20px;">
+        `;
+        
+        // Tambahin tombol server
+        if (serverList.length > 0) {
+            serverList.forEach(server => {
+                html += `
+                    <button class="server-btn" onclick="loadSimpleServer('${server.id}', '${episodeId}')">
+                        ${server.name}
+                    </button>
+                `;
+            });
+        } else {
+            html += '<p>Tidak ada server tersedia</p>';
+        }
+        
+        // Tambah link download
+        html += `
                     </div>
                     
                     <h3 style="margin-top: 20px;">📥 Download</h3>
@@ -1765,16 +1252,82 @@ async function showEpisode(episodeId) {
         
         mainContent.innerHTML = html;
         
-        try {
-            initVideoPlayer('premiumPlayerContainer', episode, episodeId);
-        } catch (e) {
-            console.error('Premium player failed, using fallback:', e);
-            fallbackVideoPlayer(episodeId, episode);
-        }
-        
     } catch (error) {
         console.error('Episode error:', error);
         showError('Gagal memuat episode: ' + error.message);
+    }
+}
+
+// Fungsi sederhana untuk load server
+async function loadSimpleServer(serverId, episodeId) {
+    const container = document.getElementById('videoPlayerContainer');
+    if (!container) return;
+    
+    // Tampilkan loading
+    container.innerHTML = `
+        <div style="text-align: center; color: white;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 48px; margin-bottom: 15px;"></i>
+            <p>Memuat video...</p>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch(`https://www.sankavollerei.com/anime/samehadaku/server/${serverId}`);
+        const data = await response.json();
+        
+        let videoUrl = data.data?.url || data.url || data.video || data.stream || data.source || data.link;
+        
+        if (!videoUrl) {
+            throw new Error('URL video tidak ditemukan');
+        }
+        
+        // Cek tipe video
+        if (videoUrl.includes('blogger.com')) {
+            container.innerHTML = `
+                <iframe 
+                    src="${videoUrl}" 
+                    frameborder="0" 
+                    allowfullscreen
+                    style="width:100%; height:100%; min-height: 300px;">
+                </iframe>
+            `;
+        } else {
+            container.innerHTML = `
+                <video controls autoplay playsinline style="width:100%; height:100%;">
+                    <source src="${videoUrl}" type="video/mp4">
+                    Browser tidak mendukung video tag.
+                </video>
+            `;
+            
+            // Tracking progress
+            const video = container.querySelector('video');
+            if (video) {
+                video.addEventListener('timeupdate', () => {
+                    const progress = (video.currentTime / video.duration) * 100;
+                    if (!isNaN(progress)) {
+                        updateHistoryProgress(episodeId, progress);
+                    }
+                });
+            }
+        }
+        
+        // Update active button
+        document.querySelectorAll('.server-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+    } catch (error) {
+        console.error('Server error:', error);
+        container.innerHTML = `
+            <div style="text-align: center; color: white;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px; color: #f56565;"></i>
+                <p>Gagal memuat video</p>
+                <button class="nav-btn" style="margin-top: 10px;" onclick="showEpisode('${episodeId}')">
+                    Kembali
+                </button>
+            </div>
+        `;
     }
 }
 
@@ -2424,6 +1977,7 @@ window.confirmPayment = confirmPayment;
 window.downloadAnime = downloadAnime;
 window.downloadEpisode = downloadEpisode;
 window.loadSchedule = loadSchedule;
+window.loadSimpleServer = loadSimpleServer;
 
 setInterval(() => {
     if (currentPage === 'schedule') {
