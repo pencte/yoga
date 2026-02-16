@@ -14,7 +14,6 @@ let selectedPlan = null;
 let selectedPayment = 'SociaBuzz';
 
 // ==================== GOOGLE LOGIN CONFIG ====================
-// Ganti dengan Client ID dari Google Cloud Console-mu
 const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
 
 // ==================== DOM ELEMENTS ====================
@@ -34,6 +33,13 @@ const historyBadge = document.getElementById('historyBadge');
 const continueBadge = document.getElementById('continueBadge');
 const downloadBadge = document.getElementById('downloadBadge');
 
+// ==================== DETEKSI APK ====================
+const isInApp = navigator.userAgent.includes('wv') || 
+                navigator.userAgent.includes('Android') && 
+                document.referrer.includes('app');
+
+console.log('Running in APK:', isInApp);
+
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
@@ -51,13 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateBadges();
     loadOfflineData();
     
-    // Initialize Google Login
     initGoogleLogin();
-    
-    // Cek pending premium activation
     checkPremiumActivation();
     
-    // Cek login status
     if (!currentUser) {
         setTimeout(() => {
             showLoginModal();
@@ -130,53 +132,23 @@ async function loadPage(page) {
     
     try {
         switch(page) {
-            case 'home':
-                await loadHome();
-                break;
-            case 'schedule':
-                await loadSchedule();
-                break;
-            case 'ongoing':
-                await loadOngoing();
-                break;
-            case 'completed':
-                await loadCompleted();
-                break;
-            case 'popular':
-                await loadPopular();
-                break;
-            case 'movies':
-                await loadMovies();
-                break;
-            case 'genres':
-                loadGenres();
-                break;
-            case 'batch':
-                loadBatch();
-                break;
-            case 'favorites':
-                loadFavorites();
-                break;
-            case 'history':
-                loadHistory();
-                break;
-            case 'continue':
-                loadContinue();
-                break;
-            case 'downloads':
-                loadDownloads();
-                break;
-            case 'premium':
-                showPremiumModal();
-                break;
-            case 'settings':
-                loadSettings();
-                break;
-            default:
-                await loadHome();
+            case 'home': await loadHome(); break;
+            case 'schedule': await loadSchedule(); break;
+            case 'ongoing': await loadOngoing(); break;
+            case 'completed': await loadCompleted(); break;
+            case 'popular': await loadPopular(); break;
+            case 'movies': await loadMovies(); break;
+            case 'genres': loadGenres(); break;
+            case 'batch': loadBatch(); break;
+            case 'favorites': loadFavorites(); break;
+            case 'history': loadHistory(); break;
+            case 'continue': loadContinue(); break;
+            case 'downloads': loadDownloads(); break;
+            case 'premium': showPremiumModal(); break;
+            case 'settings': loadSettings(); break;
+            default: await loadHome();
         }
         
-        // Sembunyikan notifikasi offline kalau berhasil
         offlineNotification.style.display = 'none';
         
     } catch (error) {
@@ -205,7 +177,6 @@ async function fetchAPI(endpoint) {
         const data = await response.json();
         console.log('Response data:', data);
         
-        // Cache data untuk offline
         if (data.status === 'success' && data.data) {
             const key = endpoint.split('?')[0].replace(/\//g, '_');
             cacheOfflineData(key, data);
@@ -274,7 +245,6 @@ async function loadHome() {
         
         let html = '';
         
-        // Popular Anime
         if (popularAnime.length > 0) {
             html += `
                 <div class="section-header">
@@ -299,7 +269,6 @@ async function loadHome() {
             html += `</div>`;
         }
         
-        // Ongoing Anime
         if (ongoingAnime.length > 0) {
             html += `
                 <div class="section-header" style="margin-top: 30px;">
@@ -324,7 +293,6 @@ async function loadHome() {
             html += `</div>`;
         }
         
-        // Kalau masih kosong, pakai mock data
         if (!html) {
             html = getMockHomeData();
         }
@@ -337,7 +305,6 @@ async function loadHome() {
     }
 }
 
-// Data mock untuk home
 function getMockHomeData() {
     const mockPopular = [
         { title: 'One Piece', score: '8.73', poster: 'https://via.placeholder.com/120x180', animeId: 'one-piece' },
@@ -394,6 +361,7 @@ function getMockHomeData() {
     
     return html;
 }
+
 // ==================== SCHEDULE PAGE ====================
 async function loadSchedule() {
     showLoading();
@@ -688,6 +656,7 @@ function changeDay(day) {
     localStorage.setItem('currentDay', day);
     loadSchedule();
 }
+
 // ==================== ONGOING PAGE ====================
 async function loadOngoing() {
     try {
@@ -695,7 +664,6 @@ async function loadOngoing() {
         try {
             data = await fetchAPI('/ongoing?page=1');
         } catch (e) {
-            console.log('Gagal ambil ongoing, coba dari cache');
             data = offlineData['_ongoing?page=1']?.data;
         }
         
@@ -726,7 +694,6 @@ async function loadCompleted() {
         try {
             data = await fetchAPI('/completed?page=1');
         } catch (e) {
-            console.log('Gagal ambil completed, coba dari cache');
             data = offlineData['_completed?page=1']?.data;
         }
         
@@ -757,7 +724,6 @@ async function loadPopular() {
         try {
             data = await fetchAPI('/popular?page=1');
         } catch (e) {
-            console.log('Gagal ambil popular, coba dari cache');
             data = offlineData['_popular?page=1']?.data;
         }
         
@@ -788,7 +754,6 @@ async function loadMovies() {
         try {
             data = await fetchAPI('/movies');
         } catch (e) {
-            console.log('Gagal ambil movies, coba dari cache');
             data = offlineData['_movies']?.data;
         }
         
@@ -1088,6 +1053,7 @@ function loadSettings() {
     
     if (darkMode) enableDarkMode();
 }
+
 // ==================== ANIME DETAIL ====================
 async function showAnimeDetail(animeId) {
     showLoading();
@@ -1176,7 +1142,7 @@ async function showAnimeDetail(animeId) {
     }
 }
 
-// ==================== VIDEO PLAYER PREMIUM CLASS ====================
+// ==================== VIDEO PLAYER PREMIUM CLASS (FIX UNTUK APK) ====================
 class PremiumVideoPlayer {
     constructor(containerId, episodeData, episodeId) {
         this.container = document.getElementById(containerId);
@@ -1246,7 +1212,7 @@ class PremiumVideoPlayer {
                 <div class="video-error" id="videoError">
                     <i class="fas fa-exclamation-circle" style="font-size: 40px; margin-bottom: 10px;"></i>
                     <p>Gagal memuat video</p>
-                    <button class="retry-btn" onclick="window.player.retry()">Coba Lagi</button>
+                    <button class="retry-btn" onclick="window.playerRef.retry()">Coba Lagi</button>
                 </div>
                 
                 <div class="quality-badge" id="qualityBadge">
@@ -1305,6 +1271,9 @@ class PremiumVideoPlayer {
         this.initElements();
         this.initEvents();
         this.loadDefaultServer();
+        
+        // Referensi global yang stabil untuk APK
+        window.playerRef = this;
     }
     
     renderResolutionOptions() {
@@ -1315,7 +1284,7 @@ class PremiumVideoPlayer {
             return `
                 <div class="resolution-item ${res === 'Auto' ? 'active' : ''} ${!hasServer && res !== 'Auto' ? 'disabled' : ''}" 
                      data-resolution="${resKey}"
-                     onclick="window.player.changeResolution('${resKey}')">
+                     onclick="window.playerRef.changeResolution('${resKey}')">
                     <span>${res}</span>
                     ${hasServer || res === 'Auto' ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times" style="color: #f56565;"></i>'}
                 </div>
@@ -1342,24 +1311,19 @@ class PremiumVideoPlayer {
     }
     
     initEvents() {
-        // Play/Pause
         this.playPauseBtn.addEventListener('click', () => this.togglePlay());
         this.video.addEventListener('click', () => this.togglePlay());
         
-        // Progress
         this.video.addEventListener('timeupdate', () => this.updateProgress());
         this.video.addEventListener('progress', () => this.updateBuffer());
         this.progressContainer.addEventListener('click', (e) => this.seek(e));
         
-        // Volume
         this.volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value));
         this.muteBtn.addEventListener('click', () => this.toggleMute());
         
-        // Fullscreen
         this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
         document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
         
-        // Picture-in-Picture
         if ('pictureInPictureEnabled' in document) {
             this.pipBtn.addEventListener('click', () => this.togglePiP());
             this.video.addEventListener('enterpictureinpicture', () => this.handlePiPEnter());
@@ -1368,19 +1332,14 @@ class PremiumVideoPlayer {
             this.pipBtn.style.display = 'none';
         }
         
-        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
-        
-        // Video error
         this.video.addEventListener('error', (e) => this.handleVideoError(e));
         
-        // Auto landscape for mobile
         window.addEventListener('orientationchange', () => this.handleOrientationChange());
         this.handleOrientationChange();
     }
     
     async loadDefaultServer() {
-        // Coba ambil server dengan resolusi terbaik berdasarkan koneksi
         const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
         let recommendedRes = '720p';
         
@@ -1395,7 +1354,6 @@ class PremiumVideoPlayer {
         const resolutions = ['4k', '1080p', '720p', '480p', '360p'];
         let loaded = false;
         
-        // Coba resolusi rekomendasi dulu
         if (this.servers[recommendedRes]?.length > 0) {
             this.currentResolution = recommendedRes;
             this.currentServer = this.servers[recommendedRes][0];
@@ -1403,7 +1361,6 @@ class PremiumVideoPlayer {
             loaded = true;
         }
         
-        // Kalau gagal, coba resolusi lain
         if (!loaded) {
             for (const res of resolutions) {
                 if (this.servers[res]?.length > 0) {
@@ -1416,7 +1373,6 @@ class PremiumVideoPlayer {
             }
         }
         
-        // Kalau masih gagal, coba unknown
         if (!loaded && this.servers['unknown']?.length > 0) {
             this.currentResolution = 'unknown';
             this.currentServer = this.servers['unknown'][0];
@@ -1438,11 +1394,9 @@ class PremiumVideoPlayer {
             
             if (!videoUrl) throw new Error('URL video tidak ditemukan');
             
-            // Hapus iframe lama kalau ada
             const oldIframe = this.container.querySelector('iframe');
             if (oldIframe) oldIframe.remove();
             
-            // Cek tipe video
             if (videoUrl.includes('blogger.com')) {
                 this.video.style.display = 'none';
                 const iframe = document.createElement('iframe');
@@ -1492,7 +1446,6 @@ class PremiumVideoPlayer {
         this.currentResolutionSpan.textContent = resolution.toUpperCase();
         this.updateQualityBadge();
         
-        // Update active class di menu
         document.querySelectorAll('.resolution-item').forEach(item => {
             item.classList.remove('active');
             if (item.dataset.resolution === resolution) {
@@ -1522,7 +1475,6 @@ class PremiumVideoPlayer {
         const duration = this.formatTime(this.video.duration);
         this.timeDisplay.textContent = `${current} / ${duration}`;
         
-        // Update history progress
         updateHistoryProgress(this.episodeId, percent);
     }
     
@@ -1611,7 +1563,6 @@ class PremiumVideoPlayer {
     }
     
     handleKeyboard(e) {
-        // Cegah kalau lagi typing di input
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         
         switch(e.key.toLowerCase()) {
@@ -1706,6 +1657,38 @@ let player;
 function initVideoPlayer(containerId, episodeData, episodeId) {
     player = new PremiumVideoPlayer(containerId, episodeData, episodeId);
     player.render();
+    window.player = player;
+}
+
+// ==================== FALLBACK VIDEO PLAYER UNTUK APK ====================
+function fallbackVideoPlayer(episodeId, episode) {
+    const videoUrl = episode.defaultStreamingUrl || '';
+    
+    let html = `
+        <div class="video-container">
+            <div class="video-player">
+                ${videoUrl.includes('blogger.com') ? 
+                    `<iframe src="${videoUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%;"></iframe>` :
+                    `<video id="fallbackVideo" controls autoplay playsinline style="width:100%; height:100%;">
+                        <source src="${videoUrl}" type="video/mp4">
+                    </video>`
+                }
+            </div>
+            <div class="video-info">
+                <h2 class="video-title">${episode.title || 'Episode ' + episodeId}</h2>
+                <div class="video-nav">
+                    <button class="nav-btn" onclick="showAnimeDetail('${episode.animeId || episodeId.split('-')[0]}')">
+                        <i class="fas fa-info-circle"></i> Kembali ke Detail
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const container = document.getElementById('premiumPlayerContainer');
+    if (container) {
+        container.innerHTML = html;
+    }
 }
 
 // ==================== EPISODE PLAYER DENGAN PREMIUM PLAYER ====================
@@ -1719,7 +1702,6 @@ async function showEpisode(episodeId) {
         
         console.log('Episode data:', episode);
         
-        // Simpan ke history
         addToHistory({
             animeId: episode.animeId || episodeId.split('-')[0],
             episodeId: episodeId,
@@ -1730,7 +1712,6 @@ async function showEpisode(episodeId) {
             timestamp: new Date().toLocaleString()
         });
         
-        // Buat container untuk video player premium
         const html = `
             <div class="video-wrapper">
                 <div id="premiumPlayerContainer"></div>
@@ -1756,7 +1737,6 @@ async function showEpisode(episodeId) {
                     <div class="download-links">
         `;
         
-        // Tambahkan link download
         if (episode.downloadUrl?.formats) {
             episode.downloadUrl.formats.forEach(format => {
                 if (format.qualities) {
@@ -1785,8 +1765,12 @@ async function showEpisode(episodeId) {
         
         mainContent.innerHTML = html;
         
-        // Inisialisasi video player premium
-        initVideoPlayer('premiumPlayerContainer', episode, episodeId);
+        try {
+            initVideoPlayer('premiumPlayerContainer', episode, episodeId);
+        } catch (e) {
+            console.error('Premium player failed, using fallback:', e);
+            fallbackVideoPlayer(episodeId, episode);
+        }
         
     } catch (error) {
         console.error('Episode error:', error);
@@ -1805,7 +1789,6 @@ async function searchAnime(keyword) {
         try {
             data = await fetchAPI(`/search?q=${encodeURIComponent(keyword)}`);
         } catch (e) {
-            console.log('Gagal ambil search, coba dari cache');
             data = offlineData[`_search?q=${keyword}`]?.data;
         }
         
@@ -1921,7 +1904,6 @@ function downloadEpisode(episodeId) {
     
     alert('Download dimulai');
     
-    // Simulasi download selesai
     setTimeout(() => {
         const index = downloads.findIndex(d => d.fileId === newDownload.fileId);
         if (index !== -1) {
@@ -2062,7 +2044,6 @@ function handleLogin(e) {
         return;
     }
     
-    // Simulasi login
     currentUser = {
         username: username,
         email: username + '@email.com',
@@ -2214,7 +2195,6 @@ function confirmPayment() {
     
     const message = `Saya mau bayar premium TeNIME paket ${selectedPlan} - Username: ${currentUser.username}`;
     
-    // Ganti 'dtest' dengan username SociaBuzz-mu
     const sociabuzzLink = `https://sociabuzz.com/dtest/support?amount=${amount}&message=${encodeURIComponent(message)}`;
     
     if (confirm(`Anda akan membayar Rp ${amount.toLocaleString()} untuk paket ${selectedPlan}\n\nLanjutkan ke halaman pembayaran SociaBuzz?`)) {
@@ -2445,10 +2425,8 @@ window.downloadAnime = downloadAnime;
 window.downloadEpisode = downloadEpisode;
 window.loadSchedule = loadSchedule;
 
-// Auto refresh schedule every minute (hanya jika di halaman schedule)
 setInterval(() => {
     if (currentPage === 'schedule') {
         loadSchedule();
     }
 }, 60000);
-
