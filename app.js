@@ -33,6 +33,11 @@ const historyBadge = document.getElementById('historyBadge');
 const continueBadge = document.getElementById('continueBadge');
 const downloadBadge = document.getElementById('downloadBadge');
 
+// ==================== VIDEO PLAYER GLOBAL ====================
+let currentEpisodeData = null;
+let currentEpisodeId = null;
+let availableServers = {};
+
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
@@ -219,22 +224,17 @@ async function loadHome() {
         try {
             popularData = await fetchAPI('/popular?page=1');
         } catch (e) {
-            console.log('Gagal ambil popular, coba dari cache');
             popularData = offlineData['_popular?page=1']?.data;
         }
         
         try {
             ongoingData = await fetchAPI('/ongoing?page=1');
         } catch (e) {
-            console.log('Gagal ambil ongoing, coba dari cache');
             ongoingData = offlineData['_ongoing?page=1']?.data;
         }
         
         const popularAnime = popularData?.data?.animeList || [];
         const ongoingAnime = ongoingData?.data?.animeList || [];
-        
-        console.log('Popular anime:', popularAnime.length);
-        console.log('Ongoing anime:', ongoingAnime.length);
         
         let html = '';
         
@@ -1135,7 +1135,7 @@ async function showAnimeDetail(animeId) {
     }
 }
 
-// ==================== EPISODE PLAYER (VERSION SUPER SIMPLE UNTUK APK) ====================
+// ==================== EPISODE PLAYER (AUTO PLAY + RESOLUTION SELECTOR) ====================
 async function showEpisode(episodeId) {
     showLoading();
     
@@ -1145,6 +1145,9 @@ async function showEpisode(episodeId) {
         const episode = data?.data || {};
         
         console.log('Episode data:', episode);
+        
+        currentEpisodeData = episode;
+        currentEpisodeId = episodeId;
         
         // Simpan ke history
         addToHistory({
@@ -1157,73 +1160,112 @@ async function showEpisode(episodeId) {
             timestamp: new Date().toLocaleString()
         });
         
-        // Ambil semua server yang tersedia
-        const serverList = [];
+        // Organize servers by resolution
+        availableServers = {
+            '4k': [],
+            '1080p': [],
+            '720p': [],
+            '480p': [],
+            '360p': [],
+            'unknown': []
+        };
+        
         if (episode.server?.qualities) {
             episode.server.qualities.forEach(quality => {
-                if (quality.serverList) {
-                    quality.serverList.forEach(server => {
-                        serverList.push({
-                            name: `${quality.title} - ${server.title}`,
-                            id: server.serverId
-                        });
-                    });
+                const qualityName = quality.title.toLowerCase();
+                if (quality.serverList && quality.serverList.length > 0) {
+                    if (qualityName.includes('4k')) availableServers['4k'].push(...quality.serverList);
+                    else if (qualityName.includes('1080')) availableServers['1080p'].push(...quality.serverList);
+                    else if (qualityName.includes('720')) availableServers['720p'].push(...quality.serverList);
+                    else if (qualityName.includes('480')) availableServers['480p'].push(...quality.serverList);
+                    else if (qualityName.includes('360')) availableServers['360p'].push(...quality.serverList);
+                    else availableServers['unknown'].push(...quality.serverList);
                 }
             });
         }
         
-        // Buat HTML dengan video player super simple
-        let html = `
+        // Tentukan resolusi default berdasarkan koneksi
+        let defaultRes = '720p';
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (connection) {
+            const speed = connection.downlink;
+            if (speed > 5) defaultRes = '1080p';
+            else if (speed > 2) defaultRes = '720p';
+            else if (speed > 1) defaultRes = '480p';
+            else defaultRes = '360p';
+        }
+        
+        // Cari server dengan resolusi default
+        let defaultServers = availableServers[defaultRes];
+        if (!defaultServers || defaultServers.length === 0) {
+            // Coba resolusi lain
+            const resolutions = ['1080p', '720p', '480p', '360p', '4k', 'unknown'];
+            for (const res of resolutions) {
+                if (availableServers[res] && availableServers[res].length > 0) {
+                    defaultServers = availableServers[res];
+                    defaultRes = res;
+                    break;
+                }
+            }
+        }
+        
+        // Buat HTML untuk resolution selector
+        const resolutionOptions = [];
+        const resolutions = ['4k', '1080p', '720p', '480p', '360p'];
+        
+        resolutions.forEach(res => {
+            const hasServer = availableServers[res] && availableServers[res].length > 0;
+            const displayName = res.toUpperCase();
+            const isActive = (res === defaultRes) ? 'active' : '';
+            
+            resolutionOptions.push(`
+                <option value="${res}" ${isActive} ${!hasServer ? 'disabled' : ''}>
+                    ${displayName} ${!hasServer ? '(Tidak Tersedia)' : ''}
+                </option>
+            `);
+        });
+        
+        // HTML utama
+        const html = `
             <div class="video-container">
-                <div class="video-player" id="videoPlayerContainer" style="background: #000; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                <div class="video-player" id="videoPlayerContainer" style="background: #000; min-height: 300px; display: flex; align-items: center; justify-content: center;">
                     <div style="text-align: center; color: white;">
-                        <i class="fas fa-film" style="font-size: 48px; margin-bottom: 15px;"></i>
-                        <p>Pilih server untuk memutar video</p>
+                        <i class="fas fa-spinner fa-spin" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <p>Memuat video...</p>
                     </div>
                 </div>
                 
                 <div class="video-info">
                     <h2 class="video-title">${episode.title || 'Episode ' + episodeId}</h2>
                     
-                    <div class="video-nav">
-                        ${episode.hasPrevEpisode ? 
-                            `<button class="nav-btn" onclick="showEpisode('${episode.prevEpisode.episodeId}')">
-                                <i class="fas fa-chevron-left"></i> Prev
-                            </button>` : ''}
-                        <button class="nav-btn" onclick="showAnimeDetail('${episode.animeId || episodeId.split('-')[0]}')">
-                            <i class="fas fa-info-circle"></i> Detail
-                        </button>
-                        ${episode.hasNextEpisode ? 
-                            `<button class="nav-btn" onclick="showEpisode('${episode.nextEpisode.episodeId}')">
-                                Next <i class="fas fa-chevron-right"></i>
-                            </button>` : ''}
-                    </div>
-                    
-                    <h3 style="margin-top: 20px;">📡 Pilih Server Streaming</h3>
-                    <div class="server-list" style="margin-bottom: 20px;">
-        `;
-        
-        // Tambahin tombol server
-        if (serverList.length > 0) {
-            serverList.forEach(server => {
-                html += `
-                    <button class="server-btn" onclick="loadSimpleServer('${server.id}', '${episodeId}')">
-                        ${server.name}
-                    </button>
-                `;
-            });
-        } else {
-            html += '<p>Tidak ada server tersedia</p>';
-        }
-        
-        // Tambah link download
-        html += `
+                    <div class="video-controls-row" style="display: flex; align-items: center; gap: 15px; margin: 15px 0;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label for="resolutionSelect" style="font-weight: 600;">Resolusi:</label>
+                            <select id="resolutionSelect" class="resolution-select" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);">
+                                ${resolutionOptions.join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="video-nav" style="display: flex; gap: 10px; margin-left: auto;">
+                            ${episode.hasPrevEpisode ? 
+                                `<button class="nav-btn" onclick="showEpisode('${episode.prevEpisode.episodeId}')">
+                                    <i class="fas fa-chevron-left"></i> Prev
+                                </button>` : ''}
+                            <button class="nav-btn" onclick="showAnimeDetail('${episode.animeId || episodeId.split('-')[0]}')">
+                                <i class="fas fa-info-circle"></i> Detail
+                            </button>
+                            ${episode.hasNextEpisode ? 
+                                `<button class="nav-btn" onclick="showEpisode('${episode.nextEpisode.episodeId}')">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>` : ''}
+                        </div>
                     </div>
                     
                     <h3 style="margin-top: 20px;">📥 Download</h3>
                     <div class="download-links">
         `;
         
+        // Tambah link download
         if (episode.downloadUrl?.formats) {
             episode.downloadUrl.formats.forEach(format => {
                 if (format.qualities) {
@@ -1252,24 +1294,48 @@ async function showEpisode(episodeId) {
         
         mainContent.innerHTML = html;
         
+        // Load video dengan resolusi default
+        if (defaultServers && defaultServers.length > 0) {
+            await loadVideoFromServer(defaultServers[0].serverId, episodeId);
+        } else {
+            document.getElementById('videoPlayerContainer').innerHTML = `
+                <div style="text-align: center; color: white;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px; color: #f56565;"></i>
+                    <p>Tidak ada server tersedia</p>
+                </div>
+            `;
+        }
+        
+        // Event listener untuk ganti resolusi
+        document.getElementById('resolutionSelect').addEventListener('change', async (e) => {
+            const selectedRes = e.target.value;
+            const servers = availableServers[selectedRes];
+            
+            if (servers && servers.length > 0) {
+                const container = document.getElementById('videoPlayerContainer');
+                container.innerHTML = `
+                    <div style="text-align: center; color: white;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 48px; margin-bottom: 15px;"></i>
+                        <p>Mengganti resolusi...</p>
+                    </div>
+                `;
+                
+                await loadVideoFromServer(servers[0].serverId, episodeId);
+            } else {
+                alert(`Tidak ada server untuk resolusi ${selectedRes}`);
+            }
+        });
+        
     } catch (error) {
         console.error('Episode error:', error);
         showError('Gagal memuat episode: ' + error.message);
     }
 }
 
-// Fungsi sederhana untuk load server
-async function loadSimpleServer(serverId, episodeId) {
+// Fungsi untuk load video dari server
+async function loadVideoFromServer(serverId, episodeId) {
     const container = document.getElementById('videoPlayerContainer');
     if (!container) return;
-    
-    // Tampilkan loading
-    container.innerHTML = `
-        <div style="text-align: center; color: white;">
-            <i class="fas fa-spinner fa-spin" style="font-size: 48px; margin-bottom: 15px;"></i>
-            <p>Memuat video...</p>
-        </div>
-    `;
     
     try {
         const response = await fetch(`https://www.sankavollerei.com/anime/samehadaku/server/${serverId}`);
@@ -1281,41 +1347,44 @@ async function loadSimpleServer(serverId, episodeId) {
             throw new Error('URL video tidak ditemukan');
         }
         
+        // Hapus konten lama
+        container.innerHTML = '';
+        
         // Cek tipe video
         if (videoUrl.includes('blogger.com')) {
-            container.innerHTML = `
-                <iframe 
-                    src="${videoUrl}" 
-                    frameborder="0" 
-                    allowfullscreen
-                    style="width:100%; height:100%; min-height: 300px;">
-                </iframe>
-            `;
+            const iframe = document.createElement('iframe');
+            iframe.src = videoUrl;
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.allowFullscreen = true;
+            container.appendChild(iframe);
         } else {
-            container.innerHTML = `
-                <video controls autoplay playsinline style="width:100%; height:100%;">
-                    <source src="${videoUrl}" type="video/mp4">
-                    Browser tidak mendukung video tag.
-                </video>
-            `;
+            const video = document.createElement('video');
+            video.controls = true;
+            video.autoplay = true;
+            video.playsInline = true;
+            video.style.width = '100%';
+            video.style.height = '100%';
+            
+            const source = document.createElement('source');
+            source.src = videoUrl;
+            source.type = 'video/mp4';
+            
+            video.appendChild(source);
+            container.appendChild(video);
             
             // Tracking progress
-            const video = container.querySelector('video');
-            if (video) {
-                video.addEventListener('timeupdate', () => {
-                    const progress = (video.currentTime / video.duration) * 100;
-                    if (!isNaN(progress)) {
-                        updateHistoryProgress(episodeId, progress);
-                    }
-                });
-            }
+            video.addEventListener('timeupdate', () => {
+                const progress = (video.currentTime / video.duration) * 100;
+                if (!isNaN(progress)) {
+                    updateHistoryProgress(episodeId, progress);
+                }
+            });
+            
+            // Auto play
+            video.play().catch(e => console.log('Autoplay prevented:', e));
         }
-        
-        // Update active button
-        document.querySelectorAll('.server-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
         
     } catch (error) {
         console.error('Server error:', error);
@@ -1977,7 +2046,6 @@ window.confirmPayment = confirmPayment;
 window.downloadAnime = downloadAnime;
 window.downloadEpisode = downloadEpisode;
 window.loadSchedule = loadSchedule;
-window.loadSimpleServer = loadSimpleServer;
 
 setInterval(() => {
     if (currentPage === 'schedule') {
